@@ -1,0 +1,42 @@
+{
+    "data": {
+        "super-admin": [
+            "shipments.create",
+            "shipments.read",
+            "shipments.update",
+            "shipments.delete",
+            "employee.create",
+            "employee.read",
+            "employee.update",
+            "employee.delete",
+            "branches.create",
+            "branches.read",
+            "branches.update",
+            "branches.delete",
+            "history.read",
+            "delivery.read",
+            "delivery.update",
+            "shipment-branch.input",
+            "shipment-branch.read",
+            "permissions.read",
+            "permissions.manage",
+            "packages.track",
+            "packages.scan"
+        ],
+        "admin-branch": [
+            "shipments.create",
+            "shipments.read",
+            "shipments.update",
+            "shipment-branch.input",
+            "shipment-branch.read",
+            "packages.track",
+            "packages.scan",
+            "employee.create",
+            "employee.read",
+            "employee.update",
+            "employee.delete"
+        ],
+        "courier": ["delivery.read", "delivery.update", "packages.track"],
+        "customer": ["shipments.create", "shipments.read", "packages.track"]
+    }
+}

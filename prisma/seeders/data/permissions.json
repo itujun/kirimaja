@@ -1,0 +1,99 @@
+{
+    "data": [
+        {
+            "name": "Create Shipment",
+            "key": "shipments.create",
+            "resource": "shipments"
+        },
+        {
+            "name": "Read Shipment",
+            "key": "shipments.read",
+            "resource": "shipments"
+        },
+        {
+            "name": "Create Employee",
+            "key": "employee.create",
+            "resource": "employee"
+        },
+        {
+            "name": "Read Employee",
+            "key": "employee.read",
+            "resource": "employee"
+        },
+        {
+            "name": "Update Employee",
+            "key": "employee.update",
+            "resource": "employee"
+        },
+        {
+            "name": "Delete Employee",
+            "key": "employee.delete",
+            "resource": "employee"
+        },
+        {
+            "name": "Create Branch",
+            "key": "branches.create",
+            "resource": "branches"
+        },
+        {
+            "name": "Read Branch",
+            "key": "branches.read",
+            "resource": "branches"
+        },
+        {
+            "name": "Update Branch",
+            "key": "branches.update",
+            "resource": "branches"
+        },
+        {
+            "name": "Delete Branch",
+            "key": "branches.delete",
+            "resource": "branches"
+        },
+        {
+            "name": "Read History",
+            "key": "history.read",
+            "resource": "history"
+        },
+        {
+            "name": "Read Delivery",
+            "key": "delivery.read",
+            "resource": "delivery"
+        },
+        {
+            "name": "Update Delivery",
+            "key": "delivery.update",
+            "resource": "delivery"
+        },
+        {
+            "name": "Read Shipment Branch",
+            "key": "shipment-branch.read",
+            "resource": "shipment-branch"
+        },
+        {
+            "name": "Input Shipment Branch",
+            "key": "shipment-branch.input",
+            "resource": "shipment-branch"
+        },
+        {
+            "name": "Read Permissions",
+            "key": "permissions.read",
+            "resource": "permissions"
+        },
+        {
+            "name": "Manage Permissions",
+            "key": "permissions.manage",
+            "resource": "permissions"
+        },
+        {
+            "name": "Track Packages",
+            "key": "packages.track",
+            "resource": "packages"
+        },
+        {
+            "name": "Scan Packages",
+            "key": "packages.scan",
+            "resource": "packages"
+        }
+    ]
+}

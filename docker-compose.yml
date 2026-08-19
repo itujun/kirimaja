@@ -1,0 +1,66 @@
+services:
+    # MySQL Database
+    mysql:
+        image: mysql:8.0
+        container_name: kirimaja-mysql
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: levtempest
+            MYSQL_DATABASE: kirim_aja_db
+            MYSQL_USER: kirim_aja_user
+            MYSQL_PASSWORD: kirim_aja_password
+        ports:
+            - '3306:3306'
+        volumes:
+            - mysql_data:/var/lib/mysql
+        networks:
+            - kirim-aja-network
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+            timeout: 20s
+            retries: 10
+
+    # Redis for Caching and Queue
+    redis:
+        image: redis:latest
+        container_name: kirimaja-redis
+        restart: unless-stopped
+        ports:
+            - '6379:6379'
+        volumes:
+            - redis_data:/data
+        networks:
+            - kirim-aja-network
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # # phpMyAdmin (Optional - MySQL GUI)
+    # phpmyadmin:
+    #     image: phpmyadmin/phpmyadmin
+    #     container_name: phpmyadmin
+    #     restart: unless-stopped
+    #     environment:
+    #         PMA_HOST: mysql
+    #         PMA_PORT: 3306
+    #         PMA_USER: kirim_aja_user
+    #         PMA_PASSWORD: kirim_aja_password
+    #         MYSQL_ROOT_PASSWORD: rootpassword
+    #     ports:
+    #         - '8080:80'
+    #     depends_on:
+    #         - mysql
+    #     networks:
+    #         - kirim-aja-network
+
+volumes:
+    mysql_data:
+        driver: local
+    redis_data:
+        driver: local
+
+networks:
+    kirim-aja-network:
+        driver: bridge

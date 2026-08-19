@@ -1,0 +1,20 @@
+{
+    "data": [
+        {
+            "name": "Super Admin",
+            "key": "super-admin"
+        },
+        {
+            "name": "Customer",
+            "key": "customer"
+        },
+        {
+            "name": "Courier",
+            "key": "courier"
+        },
+        {
+            "name": "Admin Branch",
+            "key": "admin-branch"
+        }
+    ]
+}
