@@ -8,6 +8,7 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { AuthLoginDTO } from './dto/auth-login.dto';
 import {
     AuthLoginResponse,
+    RoleResponse,
     UserResponse,
 } from './response/auth-login.response';
 import * as bcrypt from 'bcrypt';
@@ -50,40 +51,26 @@ export class AuthService {
             throw new UnauthorizedException('Invalid password');
         }
 
-        const payload = {
+        const accessToken = this.jwtService.sign({
             sub: user.id,
             email: user.email,
             name: user.name,
             roleId: user.roleId,
-        };
-
-        const accessToken = this.jwtService.sign(payload);
-
-        const { password, ...userWithoutPassword } = user;
-
-        const transformedUser = {
-            ...userWithoutPassword,
-            roles: user.role.rolePermissions.map((rolePermission) => ({
-                id: rolePermission.permission.id,
-                name: rolePermission.permission.name,
-                key: rolePermission.permission.key,
-                resource: rolePermission.permission.resource,
-            })),
-        };
-
-        const userResponse = plainToInstance(UserResponse, transformedUser, {
-            excludeExtraneousValues: true,
         });
+
+        const userResponse = plainToInstance(
+            UserResponse,
+            {
+                ...user,
+                role: RoleResponse.fromEntity(user.role), // pakai mapper yang sama dengan RolesService
+            },
+            { excludeExtraneousValues: true },
+        );
 
         return plainToInstance(
             AuthLoginResponse,
-            {
-                accessToken,
-                user: userResponse,
-            },
-            {
-                excludeExtraneousValues: true,
-            },
+            { accessToken, user: userResponse },
+            { excludeExtraneousValues: true },
         );
     }
 
@@ -127,40 +114,26 @@ export class AuthService {
             },
         });
 
-        const payload = {
+        const accessToken = this.jwtService.sign({
             sub: user.id,
             email: user.email,
             name: user.name,
             roleId: user.roleId,
-        };
-
-        const accessToken = this.jwtService.sign(payload);
-
-        const { password, ...userWithoutPassword } = user;
-
-        const transformedUser = {
-            ...userWithoutPassword,
-            roles: user.role.rolePermissions.map((rolePermission) => ({
-                id: rolePermission.permission.id,
-                name: rolePermission.permission.name,
-                key: rolePermission.permission.key,
-                resource: rolePermission.permission.resource,
-            })),
-        };
-
-        const userResponse = plainToInstance(UserResponse, transformedUser, {
-            excludeExtraneousValues: true,
         });
+
+        const userResponse = plainToInstance(
+            UserResponse,
+            {
+                ...user,
+                role: RoleResponse.fromEntity(user.role), // pakai mapper yang sama dengan RolesService
+            },
+            { excludeExtraneousValues: true },
+        );
 
         return plainToInstance(
             AuthLoginResponse,
-            {
-                accessToken,
-                user: userResponse,
-            },
-            {
-                excludeExtraneousValues: true,
-            },
+            { accessToken, user: userResponse },
+            { excludeExtraneousValues: true },
         );
     }
 }

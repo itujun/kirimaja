@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { Env } from 'src/config/env.schema';
+import { RoleResponse } from '../response/auth-login.response';
 
 export interface JwtPayload {
     sub: number;
@@ -47,8 +48,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         return {
             id: user.id,
             email: user.email,
-            roleId: user.role.id,
-            role: user.role,
+            role: RoleResponse.fromEntity(user.role), // sekarang bentuknya SAMA dengan response login
         };
     }
 }

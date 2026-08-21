@@ -3,63 +3,35 @@ import { UpdateRoleDTO } from './dto/update-role.dto';
 import { RoleResponse } from '../auth/response/auth-login.response';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 
+const ROLE_WITH_PERMISSIONS_INCLUDE = {
+    rolePermissions: {
+        include: { permission: true },
+    },
+};
+
 @Injectable()
 export class RolesService {
     constructor(private prismaService: PrismaService) {}
 
     async findAll(): Promise<RoleResponse[]> {
         const roles = await this.prismaService.role.findMany({
-            include: {
-                rolePermissions: {
-                    include: {
-                        permission: true,
-                    },
-                },
-            },
+            include: ROLE_WITH_PERMISSIONS_INCLUDE,
         });
 
-        return roles.map((role) => {
-            return {
-                id: role.id,
-                name: role.name,
-                key: role.key,
-                permissions: role.rolePermissions.map((rp) => ({
-                    id: rp.permission.id,
-                    name: rp.permission.name,
-                    key: rp.permission.key,
-                    resource: rp.permission.resource,
-                })),
-            };
-        });
+        return roles.map((role) => RoleResponse.fromEntity(role));
     }
 
     async findOne(id: number): Promise<RoleResponse> {
         const role = await this.prismaService.role.findUnique({
             where: { id },
-            include: {
-                rolePermissions: {
-                    include: {
-                        permission: true,
-                    },
-                },
-            },
+            include: ROLE_WITH_PERMISSIONS_INCLUDE,
         });
 
         if (!role) {
             throw new NotFoundException(`Role with ID ${id} not found`);
         }
 
-        return {
-            id: role.id,
-            name: role.name,
-            key: role.key,
-            permissions: role.rolePermissions.map((rp) => ({
-                id: rp.permission.id,
-                name: rp.permission.name,
-                key: rp.permission.key,
-                resource: rp.permission.resource,
-            })),
-        };
+        return RoleResponse.fromEntity(role);
     }
 
     async update(
