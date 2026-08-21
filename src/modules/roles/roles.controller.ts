@@ -19,12 +19,23 @@ export class RolesController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.rolesService.findOne(+id);
+    async findOne(
+        @Param('id') id: string,
+    ): Promise<BaseResponse<RoleResponse>> {
+        return {
+            message: `Role with ID ${id} retrieved successfully`,
+            data: await this.rolesService.findOne(+id),
+        };
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDTO) {
-        return this.rolesService.update(+id, updateRoleDto);
+    async update(
+        @Param('id') id: string,
+        @Body() updateRoleDto: UpdateRoleDTO,
+    ): Promise<BaseResponse<RoleResponse>> {
+        return {
+            message: `Role with ID ${id} updated successfully`,
+            data: await this.rolesService.update(+id, updateRoleDto),
+        };
     }
 }

@@ -12,7 +12,7 @@ export class RoleResponse {
 
     @Expose()
     @Type(() => PermissionResponse)
-    permission: PermissionResponse[];
+    permissions: PermissionResponse[];
 }
 
 class PermissionResponse {
