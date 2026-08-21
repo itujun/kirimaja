@@ -1,4 +1,12 @@
-import { Controller, Get, Body, Patch, Param, UseGuards } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Body,
+    Patch,
+    Param,
+    UseGuards,
+    ParseIntPipe,
+} from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { JwtAuthGuard } from '../auth/guards/logged-in/logged-in.guard';
 import { BaseResponse } from './interface/base-response.interface';
@@ -20,22 +28,22 @@ export class RolesController {
 
     @Get(':id')
     async findOne(
-        @Param('id') id: string,
+        @Param('id', ParseIntPipe) id: number,
     ): Promise<BaseResponse<RoleResponse>> {
         return {
             message: `Role with ID ${id} retrieved successfully`,
-            data: await this.rolesService.findOne(+id),
+            data: await this.rolesService.findOne(id),
         };
     }
 
     @Patch(':id')
     async update(
-        @Param('id') id: string,
+        @Param('id', ParseIntPipe) id: number,
         @Body() updateRoleDto: UpdateRoleDTO,
     ): Promise<BaseResponse<RoleResponse>> {
         return {
             message: `Role with ID ${id} updated successfully`,
-            data: await this.rolesService.update(+id, updateRoleDto),
+            data: await this.rolesService.update(id, updateRoleDto),
         };
     }
 }
