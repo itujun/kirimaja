@@ -1,5 +1,5 @@
 import { PermissionsService } from './permissions.service';
-import { JwtAuthGuard } from '../auth/guards/logged-in/logged-in.guard';
+import { JwtAuthGuard } from '../auth/guards/logged-in.guard';
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { Permission } from '@prisma/client';
 import { BaseResponse } from '../roles/interface/base-response.interface';

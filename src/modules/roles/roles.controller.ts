@@ -8,7 +8,7 @@ import {
     ParseIntPipe,
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
-import { JwtAuthGuard } from '../auth/guards/logged-in/logged-in.guard';
+import { JwtAuthGuard } from '../auth/guards/logged-in.guard';
 import { BaseResponse } from './interface/base-response.interface';
 import { RoleResponse } from '../auth/response/auth-login.response';
 import { UpdateRoleDTO } from './dto/update-role.dto';
