@@ -29,7 +29,7 @@ class PermissionResponse {
     resource: string;
 }
 
-class UserResponse {
+export class UserResponse {
     @Expose()
     id: number;
 
