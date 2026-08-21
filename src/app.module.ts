@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.validation';
+import { RolesModule } from './modules/roles/roles.module';
 
 @Module({
     imports: [
@@ -12,6 +13,7 @@ import { validateEnv } from './config/env.validation';
             validate: validateEnv, // dijalankan otomatis saat app start
         }),
         AuthModule,
+        RolesModule,
     ],
     controllers: [AppController],
     providers: [AppService],
