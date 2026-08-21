@@ -1,12 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Permission } from '@prisma/client';
+import { ROLE_WITH_PERMISSIONS_INCLUDE } from 'src/common/prisma/prisma-includes';
 import { PrismaService } from 'src/common/prisma/prisma.service';
-
-const ROLE_WITH_PERMISSIONS_INCLUDE = {
-    rolePermissions: {
-        include: { permission: true },
-    },
-};
 
 @Injectable()
 export class PermissionsService {

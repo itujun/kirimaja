@@ -2,12 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateRoleDTO } from './dto/update-role.dto';
 import { RoleResponse } from '../auth/response/auth-login.response';
 import { PrismaService } from 'src/common/prisma/prisma.service';
-
-const ROLE_WITH_PERMISSIONS_INCLUDE = {
-    rolePermissions: {
-        include: { permission: true },
-    },
-};
+import { ROLE_WITH_PERMISSIONS_INCLUDE } from 'src/common/prisma/prisma-includes';
 
 @Injectable()
 export class RolesService {

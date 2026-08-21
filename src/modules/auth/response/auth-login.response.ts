@@ -1,15 +1,5 @@
-import { Prisma } from '@prisma/client';
 import { Expose, plainToInstance, Type } from 'class-transformer';
-
-// Type ini menggambarkan bentuk data Role hasil query Prisma
-// dengan include rolePermissions + permission (biar type-safe, bukan `any`)
-type RoleWithPermissions = Prisma.RoleGetPayload<{
-    include: {
-        rolePermissions: {
-            include: { permission: true };
-        };
-    };
-}>;
+import { RoleWithPermissions } from 'src/common/prisma/prisma-includes';
 
 export class RoleResponse {
     @Expose()

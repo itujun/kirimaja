@@ -15,6 +15,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
 import { AuthRegisterDTO } from './dto/auth-register.dto';
+import { ROLE_WITH_PERMISSIONS_INCLUDE } from 'src/common/prisma/prisma-includes';
 
 @Injectable()
 export class AuthService {
@@ -28,13 +29,7 @@ export class AuthService {
             where: { email: request.email },
             include: {
                 role: {
-                    include: {
-                        rolePermissions: {
-                            include: {
-                                permission: true,
-                            },
-                        },
-                    },
+                    include: ROLE_WITH_PERMISSIONS_INCLUDE,
                 },
             },
         });
@@ -103,13 +98,7 @@ export class AuthService {
             },
             include: {
                 role: {
-                    include: {
-                        rolePermissions: {
-                            include: {
-                                permission: true,
-                            },
-                        },
-                    },
+                    include: ROLE_WITH_PERMISSIONS_INCLUDE,
                 },
             },
         });

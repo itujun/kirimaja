@@ -5,6 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { Env } from 'src/config/env.schema';
 import { RoleResponse } from '../response/auth-login.response';
+import { ROLE_WITH_PERMISSIONS_INCLUDE } from 'src/common/prisma/prisma-includes';
 
 export interface JwtPayload {
     sub: number;
@@ -30,13 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             where: { id: payload.sub },
             include: {
                 role: {
-                    include: {
-                        rolePermissions: {
-                            include: {
-                                permission: true,
-                            },
-                        },
-                    },
+                    include: ROLE_WITH_PERMISSIONS_INCLUDE,
                 },
             },
         });
