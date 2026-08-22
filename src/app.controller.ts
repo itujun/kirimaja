@@ -4,6 +4,7 @@ import { JwtAuthGuard } from './modules/auth/guards/logged-in.guard';
 import { PermissionGuard } from './modules/auth/guards/permission.guard';
 import { RequirePermission } from './modules/auth/decorators/permission.decorator';
 import { EmailService } from './common/email/email.service';
+import { QueueService } from './common/queue/queue.service';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -11,6 +12,7 @@ export class AppController {
     constructor(
         private readonly appService: AppService,
         private readonly emailService: EmailService,
+        private readonly queueService: QueueService,
     ) {}
 
     @Get()
@@ -27,7 +29,10 @@ export class AppController {
 
     @Get('send-email-test')
     async testEmail(): Promise<string> {
-        await this.emailService.testingEmail('Qw0oT@example.com');
+        await this.queueService.addEmailJob({
+            type: 'testing',
+            to: 'tesi@example.com',
+        });
         return 'test email sent';
     }
 }
