@@ -10,6 +10,7 @@ import { ProfileModule } from './modules/profile/profile.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { EmployeeBranchesModule } from './modules/employee-branches/employee-branches.module';
 import { UserAddressesModule } from './modules/user-addresses/user-addresses.module';
+import { EmailService } from './common/email/email.service';
 
 @Module({
     imports: [
@@ -26,6 +27,6 @@ import { UserAddressesModule } from './modules/user-addresses/user-addresses.mod
         UserAddressesModule,
     ],
     controllers: [AppController],
-    providers: [AppService],
+    providers: [AppService, EmailService],
 })
 export class AppModule {}
