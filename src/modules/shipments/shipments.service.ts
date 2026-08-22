@@ -136,24 +136,24 @@ export class ShipmentsService {
         return shipment;
     }
 
-    async findAll(): Promise<Shipment[]> {
-        return `This action returns all shipments`;
-    }
+    // async findAll(): Promise<Shipment[]> {
+    //     return `This action returns all shipments`;
+    // }
 
-    async findOne(id: number): Promise<Shipment> {
-        return `This action returns a #${id} shipment`;
-    }
+    // async findOne(id: number): Promise<Shipment> {
+    //     return `This action returns a #${id} shipment`;
+    // }
 
-    async update(
-        id: number,
-        updateShipmentDto: UpdateShipmentDto,
-    ): Promise<Shipment> {
-        return `This action updates a #${id} shipment`;
-    }
+    // async update(
+    //     id: number,
+    //     updateShipmentDto: UpdateShipmentDto,
+    // ): Promise<Shipment> {
+    //     return `This action updates a #${id} shipment`;
+    // }
 
-    async remove(id: number): Promise<Shipment> {
-        return `This action removes a #${id} shipment`;
-    }
+    // async remove(id: number): Promise<Shipment> {
+    //     return `This action removes a #${id} shipment`;
+    // }
 
     private calculateShipmentCost(
         distance: number,

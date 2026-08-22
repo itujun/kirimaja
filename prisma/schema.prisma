@@ -191,7 +191,7 @@ model Payment {
   id            Int       @id @default(autoincrement())
   shipmentId    Int       @unique @map("shipment_id")
   externalId    String?   @map("external_id")
-  invoiceID     String?   @map("invoice_id")
+  invoiceId     String?   @map("invoice_id")
   paymentMethod String?   @map("payment_method")
   status        String?
   invoiceUrl    String?   @map("invoice_url")
