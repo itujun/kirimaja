@@ -38,5 +38,10 @@ export const envSchema = z.object({
     SMTP_EMAIL_SENDER: z
         .string({ required_error: 'SMTP_EMAIL_SENDER wajib diisi di .env' })
         .min(1, 'SMTP_EMAIL_SENDER tidak boleh kosong'),
+
+    // Xendit
+    XENDIT_SECRET_KEY: z
+        .string({ required_error: 'XENDIT_SECRET_KEY wajib diisi di .env' })
+        .min(1, 'XENDIT_SECRET_KEY tidak boleh kosong'),
 });
 export type Env = z.infer<typeof envSchema>;
