@@ -181,7 +181,7 @@ export class EmployeeBranchesService {
                             updateEmployeeBranchDto.password,
                             10,
                         ),
-                    })
+                    }),
                     roleId: updateEmployeeBranchDto.role_id,
                 },
             });
@@ -195,17 +195,16 @@ export class EmployeeBranchesService {
             });
 
             return {
-              ...updateEmployeeBranch,
-              user: updatedUser,
-            }
+                ...updateEmployeeBranch,
+            };
         });
     }
 
     async remove(id: number): Promise<void> {
         const employeeBranch = await this.findOne(id);
         return this.prismaService.$transaction(async (tx) => {
-            await tx.user.delete({ where: { id: employeeBranch.userId } });
             await tx.employeeBranch.delete({ where: { id } });
-        })
+            await tx.user.delete({ where: { id: employeeBranch.userId } });
+        });
     }
 }

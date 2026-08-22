@@ -27,6 +27,12 @@ export const employeeBranchSchema = z.object({
         .int({
             message: 'branch id must be an integer',
         }),
+    type: z
+        .string({
+            required_error: 'type is required',
+            invalid_type_error: 'type must be a string',
+        })
+        .min(1, 'type must be at least 1 characters'),
     role_id: z
         .number({
             required_error: 'role id is required',
@@ -53,6 +59,7 @@ export class CreateEmployeeBranchDto {
         public email: string,
         public phone_number: string,
         public branch_id: number,
+        public type: string,
         public role_id: number,
         public password: string,
         public avatar?: string | null,
