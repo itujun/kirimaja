@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateUserAddressDto } from './dto/create-user-address.dto';
+import { CreateUserAddressesDto } from './dto/create-user-address.dto';
 import { UpdateUserAddressDto } from './dto/update-user-address.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { OpenCageService } from 'src/common/opencage/opencage.service';
@@ -26,7 +26,7 @@ export class UserAddressesService {
     }
 
     async create(
-        createUserAddressDto: CreateUserAddressDto,
+        createUserAddressDto: CreateUserAddressesDto,
         userId: number,
         photoFileName?: string | null,
     ): Promise<UserAddress> {
@@ -35,7 +35,7 @@ export class UserAddressesService {
         );
 
         if (photoFileName) {
-            createdUserAddressDto.photo = this.generatePhotoPath(photoFileName);
+            createUserAddressDto.photo = this.generatePhotoPath(photoFileName);
         }
 
         return this.prismaService.userAddress.create({
@@ -89,11 +89,43 @@ export class UserAddressesService {
         return userAddress;
     }
 
-    update(id: number, updateUserAddressDto: UpdateUserAddressDto) {
-        return `This action updates a #${id} userAddress`;
+    async update(
+        id: number,
+        updateUserAddressDto: UpdateUserAddressDto,
+        photoFileName?: string | null,
+    ): Promise<UserAddress> {
+        const userAddresses = await this.findOne(id);
+
+        let newLatitude: number | null = userAddresses.latitude;
+        let newLongitude: number | null = userAddresses.longitude;
+
+        if (updateUserAddressDto.address) {
+            const { lat, lng } = await this.getCoordinatesFromAddress(
+                updateUserAddressDto.address,
+            );
+            newLatitude = lat;
+            newLongitude = lng;
+        }
+
+        if (photoFileName) {
+            updateUserAddressDto.photo = this.generatePhotoPath(photoFileName);
+        }
+
+        return await this.prismaService.userAddress.update({
+            where: { id },
+            data: {
+                address: updateUserAddressDto.address ?? userAddresses.address,
+                tag: updateUserAddressDto.tag ?? userAddresses.tag,
+                label: updateUserAddressDto.label ?? userAddresses.label,
+                photo: updateUserAddressDto.photo ?? userAddresses.photo,
+                latitude: newLatitude,
+                longitude: newLongitude,
+            },
+        });
     }
 
-    remove(id: number) {
-        return `This action removes a #${id} userAddress`;
+    async remove(id: number): Promise<void> {
+        await this.findOne(id);
+        await this.prismaService.userAddress.delete({ where: { id } });
     }
 }

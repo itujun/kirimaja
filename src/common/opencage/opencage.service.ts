@@ -1,11 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { envSchema } from 'src/config/env.schema';
+import { Env } from 'src/config/env.schema';
 
 @Injectable()
 export class OpenCageService {
+    constructor(private readonly configService: ConfigService<Env, true>) {}
+
     async geocode(address: string): Promise<{ lat: number; lng: number }> {
-        const apiKey = envSchema.OPENCAGE_API_KEY;
+        const apiKey = this.configService.get('OPENCAGE_API_KEY', {
+            infer: true,
+        });
         if (!apiKey) {
             throw new BadRequestException(
                 'API key not found in environment variables',

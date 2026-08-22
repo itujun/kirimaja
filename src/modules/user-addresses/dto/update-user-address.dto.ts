@@ -7,9 +7,9 @@ export class UpdateUserAddressDto {
     static schema: ZodObject<any> = updateUserAddressesSchema;
 
     constructor(
-        public readonly address?: string,
-        public readonly tag?: string,
-        public readonly label?: string,
-        public readonly photo?: string | null,
+        public address?: string,
+        public tag?: string,
+        public label?: string,
+        public photo?: string | null,
     ) {}
 }
