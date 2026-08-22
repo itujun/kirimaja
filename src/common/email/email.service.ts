@@ -50,4 +50,33 @@ export class EmailService {
 
         await this.transporter.sendMail(mailOptions);
     }
+
+    async sendEmailPaymentNotification(
+        to: string,
+        paymentUrl: string,
+        shipmentId: number,
+        amount: number,
+        expiryDate: Date,
+    ): Promise<void> {
+        const templateData = {
+            shipmentId,
+            paymentUrl,
+            amount: amount.toFixed(2),
+            expiryDate: expiryDate.toLocaleDateString(),
+        };
+
+        const htmlContent = this.compileTemplate(
+            'payment-notification',
+            templateData,
+        );
+
+        const mailOptions = {
+            from: this.configService.get('SMTP_EMAIL_SENDER') || '',
+            to,
+            subject: `Payment Notification for Shipment #${shipmentId}`,
+            html: htmlContent,
+        };
+
+        await this.transporter.sendMail(mailOptions);
+    }
 }

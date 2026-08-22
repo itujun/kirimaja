@@ -12,6 +12,7 @@ import { EmployeeBranchesModule } from './modules/employee-branches/employee-bra
 import { UserAddressesModule } from './modules/user-addresses/user-addresses.module';
 import { EmailService } from './common/email/email.service';
 import { QueueModule } from './common/queue/queue.module';
+import { ShipmentsModule } from './modules/shipments/shipments.module';
 
 @Module({
     imports: [
@@ -27,6 +28,7 @@ import { QueueModule } from './common/queue/queue.module';
         EmployeeBranchesModule,
         UserAddressesModule,
         QueueModule,
+        ShipmentsModule,
     ],
     controllers: [AppController],
     providers: [AppService, EmailService],
