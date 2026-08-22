@@ -9,7 +9,6 @@ export class UpdateEmployeeBranchDto {
     constructor(
         public readonly name?: string,
         public readonly email?: string,
-        public readonly address?: string,
         public readonly phone_number?: string,
         public readonly branch_id?: number,
         public readonly type?: string,

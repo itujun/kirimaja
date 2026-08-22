@@ -25,7 +25,7 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  role Role @relation(fields: [roleId], references: [id])
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
 
   employeeBranches    EmployeeBranch[]
   userAddresses       UserAddress[]
@@ -39,7 +39,7 @@ model User {
 model Role {
   id        Int      @id @default(autoincrement())
   name      String
-  key       String
+  key       String   @unique
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -55,7 +55,7 @@ model Permission {
   key       String   @unique
   resource  String
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   rolePermissions RolePermission[]
 
@@ -67,7 +67,7 @@ model RolePermission {
   roleId       Int      @map("role_id")
   permissionId Int      @map("permission_id")
   createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @default(now()) @map("updated_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
@@ -78,7 +78,7 @@ model RolePermission {
 
 model Branch {
   id                 Int                 @id @default(autoincrement())
-  name               String
+  name               String              @unique
   address            String
   phoneNumber        String              @map("phone_number")
   createdAt          DateTime            @default(now()) @map("created_at")
@@ -98,8 +98,8 @@ model EmployeeBranch {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user   User   @relation(fields: [userId], references: [id])
-  branch Branch @relation(fields: [branchId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@map("employee_branches")
 }
@@ -116,7 +116,7 @@ model UserAddress {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user            User             @relation(fields: [userId], references: [id])
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   shipmentDetails ShipmentDetail[]
 
   @@map("user_addresses")
@@ -163,9 +163,9 @@ model ShipmentDetail {
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
-  shipment Shipment    @relation(fields: [shipmentId], references: [id])
-  user     User        @relation(fields: [userId], references: [id])
-  address  UserAddress @relation(fields: [pickupAddressId], references: [id])
+  shipment Shipment    @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  user     User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  address  UserAddress @relation(fields: [pickupAddressId], references: [id], onDelete: Restrict)
 
   @@map("shipment_details")
 }
@@ -180,9 +180,9 @@ model ShipmentHistory {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  shipment Shipment @relation(fields: [shipmentId], references: [id])
-  user     User?    @relation(fields: [userId], references: [id])
-  branch   Branch?  @relation(fields: [branchId], references: [id])
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
   @@map("shipment_histories")
 }
@@ -199,7 +199,7 @@ model Payment {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  shipment Shipment @relation(fields: [shipmentId], references: [id])
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
 
   @@map("payments")
 }
@@ -217,9 +217,9 @@ model ShipmentBranchLog {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  shipment      Shipment @relation(fields: [shipmentId], references: [id])
-  branch        Branch   @relation(fields: [branchId], references: [id])
-  scannedByUser User     @relation(fields: [scannedByUserId], references: [id])
+  shipment      Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  branch        Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  scannedByUser User     @relation(fields: [scannedByUserId], references: [id], onDelete: Restrict)
 
   @@map("shipment_branch_log")
 }

@@ -77,7 +77,7 @@ export class EmployeeBranchesController {
     @RequirePermission('employee.delete')
     async remove(
         @Param('id', ParseIntPipe) id: number,
-    ): Promise<BaseResponse<EmployeeBranch>> {
+    ): Promise<BaseResponse<null>> {
         await this.employeeBranchesService.remove(id);
         return {
             message: `Employee branch with ID ${id} deleted successfully`,

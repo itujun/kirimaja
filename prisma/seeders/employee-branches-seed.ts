@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma-client';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
+import { BCRYPT_SALT_ROUNDS } from './constants';
 
 export async function employeeBranchesSeed() {
     const employeeBranchesPath = path.resolve(
@@ -42,7 +41,10 @@ export async function employeeBranchesSeed() {
                 name: employeeBranch.name,
                 email: employeeBranch.email,
                 phoneNumber: employeeBranch.phoneNumber,
-                password: await bcrypt.hash(employeeBranch.password, 10),
+                password: await bcrypt.hash(
+                    employeeBranch.password,
+                    BCRYPT_SALT_ROUNDS,
+                ),
                 avatar: employeeBranch.avatar || null,
                 roleId: role.id,
             },

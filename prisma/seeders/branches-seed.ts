@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma-client';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const prisma = new PrismaClient();
 
 export async function branchesSeed() {
     const branchesPath = path.resolve(__dirname, 'data', 'branches.json');
@@ -28,8 +26,6 @@ export async function branchesSeed() {
                 `⚠️  Branch "${branch.name}" already exists. Skipping...`,
             );
         }
-
-        console.log(`✅ Branch "${branch.name}" seeded`);
     }
 }
 

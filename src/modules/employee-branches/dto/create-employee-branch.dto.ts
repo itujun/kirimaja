@@ -27,12 +27,9 @@ export const employeeBranchSchema = z.object({
         .int({
             message: 'branch id must be an integer',
         }),
-    type: z
-        .string({
-            required_error: 'type is required',
-            invalid_type_error: 'type must be a string',
-        })
-        .min(1, 'type must be at least 1 characters'),
+    type: z.enum(['courier', 'admin'], {
+        errorMap: () => ({ message: 'type must be courier or admin' }),
+    }),
     role_id: z
         .number({
             required_error: 'role id is required',

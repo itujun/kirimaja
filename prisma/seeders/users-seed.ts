@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma-client';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const prisma = new PrismaClient();
+import { BCRYPT_SALT_ROUNDS } from './constants';
 
 export async function usersSeed() {
     const usersPath = path.resolve(__dirname, 'data', 'users.json');
@@ -22,7 +21,10 @@ export async function usersSeed() {
             continue;
         }
 
-        const hashedPassword = await bcrypt.hash(user.password, 12);
+        const hashedPassword = await bcrypt.hash(
+            user.password,
+            BCRYPT_SALT_ROUNDS,
+        );
 
         await prisma.user.upsert({
             where: { email: user.email },

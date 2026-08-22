@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const prisma = new PrismaClient();
+import { prisma } from './prisma-client';
 
 export async function rolesSeed() {
     const rolesPath = path.resolve(__dirname, 'data', 'roles.json');

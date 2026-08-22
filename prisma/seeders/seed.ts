@@ -1,11 +1,9 @@
-import { PrismaClient } from '@prisma/client';
 import { rolesSeed } from './roles-seed';
 import { usersSeed } from './users-seed';
 import { permissionsSeed } from './permissions-seed';
 import { branchesSeed } from './branches-seed';
 import { employeeBranchesSeed } from './employee-branches-seed';
-
-const prisma = new PrismaClient();
+import { prisma } from './prisma-client';
 
 async function main() {
     console.log('🌱 Mulai seeding database...');
