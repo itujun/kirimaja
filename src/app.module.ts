@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.validation';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { ProfileModule } from './modules/profile/profile.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
         AuthModule,
         RolesModule,
         PermissionsModule,
+        ProfileModule,
     ],
     controllers: [AppController],
     providers: [AppService],
