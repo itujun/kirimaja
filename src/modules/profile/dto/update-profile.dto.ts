@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+// Catatan: field `password` SENGAJA dihapus dari sini dan dipindah ke
+// ChangePasswordDto + endpoint terpisah (PATCH /profile/password).
+// Alasan keamanan: ganti password seharusnya tidak bisa "menumpang"
+// di request update profile umum tanpa verifikasi password lama --
+// lihat ChangePasswordDto untuk detailnya.
 const updateProfileSchema = z.object({
     name: z
         .string({
@@ -15,13 +20,6 @@ const updateProfileSchema = z.object({
         .email({
             message: 'Email is invalid',
         })
-        .optional(),
-    password: z
-        .string({
-            required_error: 'Password is required',
-            invalid_type_error: 'Password must be a string',
-        })
-        .min(8, 'Password must be at least 8 characters')
         .optional(),
     phone_number: z
         .string({
@@ -46,7 +44,6 @@ export class UpdateProfileDto {
         public name?: string,
         public email?: string,
         public phone_number?: string,
-        public password?: string,
         public avatar?: string | null,
     ) {}
 }

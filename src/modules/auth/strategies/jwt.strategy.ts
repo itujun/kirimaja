@@ -14,6 +14,16 @@ export interface JwtPayload {
     roleId: number;
 }
 
+// Bentuk PASTI dari `request.user` setelah lolos JwtAuthGuard.
+// Ini "single source of truth" -- dipakai juga oleh @CurrentUser()
+// decorator supaya tidak ada lagi `req.user: any` yang tersebar
+// di controller-controller lain.
+export interface AuthenticatedUser {
+    id: number;
+    email: string;
+    role: RoleResponse;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor(
