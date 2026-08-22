@@ -43,5 +43,10 @@ export const envSchema = z.object({
     XENDIT_SECRET_KEY: z
         .string({ required_error: 'XENDIT_SECRET_KEY wajib diisi di .env' })
         .min(1, 'XENDIT_SECRET_KEY tidak boleh kosong'),
+
+    // FRONTEND
+    FRONTEND_URL: z
+        .string({ required_error: 'FRONTEND_URL wajib diisi di .env' })
+        .min(1, 'FRONTEND_URL tidak boleh kosong'),
 });
 export type Env = z.infer<typeof envSchema>;

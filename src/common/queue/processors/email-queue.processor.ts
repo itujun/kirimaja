@@ -6,7 +6,7 @@ import { EmailService } from 'src/common/email/email.service';
 export interface EmailJobData {
     type: string;
     to: string;
-    shipmentId?: string;
+    shipmentId?: number;
     amount?: number;
     paymentUrl?: string;
     expiryDate?: Date;
@@ -34,7 +34,7 @@ export class EmailQueueProcessor {
                     await this.emailService.sendEmailPaymentNotification(
                         data.to,
                         data.paymentUrl || '',
-                        data.shipmentId ? parseInt(data.shipmentId, 10) : 0,
+                        data.shipmentId || 0,
                         data.amount || 0,
                         data.expiryDate || new Date(),
                     );
