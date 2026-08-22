@@ -31,12 +31,16 @@ export class EmailQueueProcessor {
                     this.logger.log(`Test email sent to: ${data.to}`);
                     break;
                 case 'payment-notification':
+                    const expiryDate =
+                        typeof data.expiryDate === 'string'
+                            ? new Date(data.expiryDate)
+                            : data.expiryDate;
                     await this.emailService.sendEmailPaymentNotification(
                         data.to,
                         data.paymentUrl || '',
                         data.shipmentId || 0,
                         data.amount || 0,
-                        data.expiryDate || new Date(),
+                        expiryDate || new Date(),
                     );
                     this.logger.log(
                         `Payment notification email sent to: ${data.to}`,

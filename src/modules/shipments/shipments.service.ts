@@ -47,8 +47,10 @@ export class ShipmentsService {
             { latitude: lat, longitude: lng },
         );
 
+        const distanceInKm = distance / 1000; // Convert meters to kilometers
+
         const shipmentCost = this.calculateShipmentCost(
-            distance,
+            distanceInKm,
             createShipmentDto.weight,
             createShipmentDto.delivery_type,
         );
@@ -57,7 +59,7 @@ export class ShipmentsService {
             const newShipment = await tx.shipment.create({
                 data: {
                     paymentStatus: PaymentStatus.PENDING,
-                    distance,
+                    distance: distanceInKm,
                     price: shipmentCost.totalPrice,
                 },
             });
