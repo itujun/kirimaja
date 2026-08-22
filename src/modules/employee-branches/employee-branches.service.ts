@@ -166,9 +166,15 @@ export class EmployeeBranchesService {
             );
         }
 
-        return this.prismaService.$transaction(async (tx) => {
-            await Promise.all(validationPromises);
+        // Semua validasi & operasi non-DB (hashing) selesai SEBELUM
+        // transaction dibuka, supaya transaction tetap singkat.
+        await Promise.all(validationPromises);
 
+        const hashedPassword = updateEmployeeBranchDto.password
+            ? await bcrypt.hash(updateEmployeeBranchDto.password, 10)
+            : undefined;
+
+        return this.prismaService.$transaction(async (tx) => {
             const updatedUser = await tx.user.update({
                 where: { id: existingEmployeeBranch.userId },
                 data: {
@@ -176,12 +182,7 @@ export class EmployeeBranchesService {
                     email: updateEmployeeBranchDto.email,
                     phoneNumber: updateEmployeeBranchDto.phone_number,
                     avatar: updateEmployeeBranchDto.avatar,
-                    ...(updateEmployeeBranchDto.password && {
-                        password: await bcrypt.hash(
-                            updateEmployeeBranchDto.password,
-                            10,
-                        ),
-                    }),
+                    ...(hashedPassword && { password: hashedPassword }),
                     roleId: updateEmployeeBranchDto.role_id,
                 },
             });
@@ -201,10 +202,17 @@ export class EmployeeBranchesService {
     }
 
     async remove(id: number): Promise<void> {
-        const employeeBranch = await this.findOne(id);
-        return this.prismaService.$transaction(async (tx) => {
-            await tx.employeeBranch.delete({ where: { id } });
-            await tx.user.delete({ where: { id: employeeBranch.userId } });
-        });
+        // Pastikan record ada dulu, biar tetap melempar 404 yang jelas
+        // kalau id tidak ditemukan (bukan silent no-op).
+        await this.findOne(id);
+
+        // Yang dihapus hanya relasi penugasan (EmployeeBranch), BUKAN
+        // akun User-nya. User adalah entitas identitas independen yang
+        // bisa saja masih aktif di cabang lain, atau tetap harus ada
+        // karena punya riwayat shipment/scan log yang dilindungi
+        // onDelete: Restrict di schema. Penghapusan akun User secara
+        // permanen harus lewat endpoint terpisah (mis. module `users`)
+        // dengan intent yang eksplisit, bukan efek samping dari sini.
+        await this.prismaService.employeeBranch.delete({ where: { id } });
     }
 }
