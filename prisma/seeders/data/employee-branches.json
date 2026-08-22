@@ -1,0 +1,58 @@
+{
+    "data": [
+        {
+            "name": "Courier Jakarta",
+            "email": "courier.jakarta@mail.com",
+            "password": "password123",
+            "phoneNumber": "081231111111",
+            "roleKey": "courier",
+            "branchName": "Cabang Jakarta Pusat",
+            "type": "courier"
+        },
+        {
+            "name": "Admin Branch Jakarta",
+            "email": "adminbranch.jakarta@mail.com",
+            "password": "password123",
+            "phoneNumber": "081233333333",
+            "roleKey": "admin-branch",
+            "branchName": "Cabang Jakarta Pusat",
+            "type": "admin"
+        },
+        {
+            "name": "Courier Surabaya",
+            "email": "courier.surabaya@mail.com",
+            "password": "password123",
+            "phoneNumber": "081234444444",
+            "roleKey": "courier",
+            "branchName": "Cabang Surabaya",
+            "type": "courier"
+        },
+        {
+            "name": "Admin Branch Surabaya",
+            "email": "adminbranch.surabaya@mail.com",
+            "password": "password123",
+            "phoneNumber": "081235555555",
+            "roleKey": "admin-branch",
+            "branchName": "Cabang Surabaya",
+            "type": "admin"
+        },
+        {
+            "name": "Courier Bandung",
+            "email": "courier.bandung@mail.com",
+            "password": "password123",
+            "phoneNumber": "081236666666",
+            "roleKey": "courier",
+            "branchName": "Cabang Bandung",
+            "type": "courier"
+        },
+        {
+            "name": "Admin Branch Bandung",
+            "email": "adminbranch.bandung@mail.com",
+            "password": "password123",
+            "phoneNumber": "081237777777",
+            "roleKey": "admin-branch",
+            "branchName": "Cabang Bandung",
+            "type": "admin"
+        }
+    ]
+}
