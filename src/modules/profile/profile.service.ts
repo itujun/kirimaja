@@ -5,7 +5,7 @@ import {
     UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { unlink } from 'fs/promises';
+import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from 'class-transformer';
@@ -17,6 +17,7 @@ import {
     AVATAR_UPLOAD_DIR,
     AVATAR_URL_PREFIX,
 } from './constants/avatar.constant';
+import { assertValidAvatarBuffer } from './utils/avatar-file-validator';
 
 @Injectable()
 export class ProfileService {
@@ -46,11 +47,8 @@ export class ProfileService {
     async update(
         id: number,
         updateProfileDto: UpdateProfileDto,
-        avatarFileName?: string | null,
+        avatarFile?: Express.Multer.File,
     ): Promise<ProfileResponse> {
-        // Ambil avatar LAMA sebelum update -- select minimal (id + avatar
-        // saja), tidak perlu tarik seluruh kolom termasuk password hash
-        // cuma untuk mengecek user ada atau tidak.
         const existingUser = await this.prismaService.user.findUnique({
             where: { id },
             select: { id: true, avatar: true },
@@ -60,8 +58,6 @@ export class ProfileService {
             throw new NotFoundException(`User with ID ${id} not found`);
         }
 
-        // Prisma.UserUpdateInput dipakai (bukan `any`) supaya TypeScript
-        // menolak saat compile kalau ada nama field yang salah ketik.
         const updateData: Prisma.UserUpdateInput = {};
 
         if (updateProfileDto.name) {
@@ -76,8 +72,16 @@ export class ProfileService {
             updateData.phoneNumber = updateProfileDto.phone_number;
         }
 
-        if (avatarFileName) {
-            updateData.avatar = `${AVATAR_URL_PREFIX}/${avatarFileName}`;
+        // Kalau ada file avatar baru: validasi ISI file-nya (magic bytes)
+        // dan simpan ke disk DI SINI, SEBELUM menyentuh database sama
+        // sekali. Kalau isinya tidak valid, assertValidAvatarBuffer akan
+        // throw UnsupportedMediaTypeException -- dan karena kita belum
+        // menulis apa pun ke disk maupun database di titik ini, tidak ada
+        // yang perlu di-rollback atau dibersihkan.
+        let newAvatarFilename: string | undefined;
+        if (avatarFile) {
+            newAvatarFilename = await this.saveAvatarFile(avatarFile);
+            updateData.avatar = `${AVATAR_URL_PREFIX}/${newAvatarFilename}`;
         }
 
         let updatedUser;
@@ -94,9 +98,14 @@ export class ProfileService {
                 },
             });
         } catch (error) {
-            // P2002 = unique constraint violation di Prisma -- di sini
-            // artinya email baru sudah dipakai user lain. Tanpa ini,
-            // client akan menerima 500 mentah tanpa pesan yang jelas.
+            // Update DB gagal (mis. email bentrok) PADAHAL avatar baru
+            // sudah kadung ditulis ke disk beberapa baris di atas --
+            // maka file yatim itu harus dihapus lagi supaya tidak
+            // menumpuk sebagai sampah tak terpakai.
+            if (newAvatarFilename) {
+                await this.deleteAvatarFileByFilename(newAvatarFilename);
+            }
+
             if (
                 error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002'
@@ -106,12 +115,10 @@ export class ProfileService {
             throw error;
         }
 
-        // File avatar lama BARU dihapus SETELAH update database sukses.
-        // Urutan ini penting: kalau update gagal duluan, avatar lama tidak
-        // ikut terhapus, sehingga data tidak pernah dalam keadaan
-        // "hilang avatar tapi update sebenarnya gagal".
-        if (avatarFileName && existingUser.avatar) {
-            await this.deleteAvatarFile(existingUser.avatar);
+        // Baru di titik ini update DB dipastikan sukses -- aman untuk
+        // menghapus avatar LAMA (kalau ada avatar baru yang menggantikannya).
+        if (newAvatarFilename && existingUser.avatar) {
+            await this.deleteAvatarFileByUrl(existingUser.avatar);
         }
 
         return plainToInstance(ProfileResponse, updatedUser, {
@@ -152,17 +159,37 @@ export class ProfileService {
         });
     }
 
-    // Menghapus file avatar lama dari disk. Sengaja dibungkus try-catch
-    // dan errornya diabaikan: kalau filenya sudah tidak ada (mis. terhapus
-    // manual sebelumnya), itu bukan alasan untuk menggagalkan seluruh
-    // request update profile yang sebenarnya sudah sukses di database.
-    private async deleteAvatarFile(avatarUrl: string): Promise<void> {
+    // Validasi magic bytes lalu tulis buffer ke disk. Nama file dibuat
+    // dari ekstensi hasil DETEKSI ISI FILE (detected.ext), BUKAN dari
+    // originalname yang dikirim client -- ini sekaligus mencegah trik
+    // nama file ganda semacam "foto.php.jpg" ikut menentukan ekstensi
+    // file yang tersimpan di server.
+    private async saveAvatarFile(file: Express.Multer.File): Promise<string> {
+        const detected = await assertValidAvatarBuffer(file.buffer);
+
+        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+        const filename = `${uniqueSuffix}.${detected.ext}`;
+
+        // recursive: true -- aman dipanggil berkali-kali, tidak error
+        // kalau foldernya sudah ada, dan otomatis membuat folder kalau
+        // belum pernah dibuat sebelumnya (mis. deployment pertama kali).
+        await mkdir(AVATAR_UPLOAD_DIR, { recursive: true });
+        await writeFile(join(AVATAR_UPLOAD_DIR, filename), file.buffer);
+
+        return filename;
+    }
+
+    private async deleteAvatarFileByFilename(filename: string): Promise<void> {
         try {
-            const filename = avatarUrl.split('/').pop();
-            if (!filename) return;
             await unlink(join(AVATAR_UPLOAD_DIR, filename));
         } catch {
-            // no-op: kegagalan hapus file lama bukan error fatal
+            // no-op: kegagalan hapus file bukan error fatal
         }
+    }
+
+    private async deleteAvatarFileByUrl(avatarUrl: string): Promise<void> {
+        const filename = avatarUrl.split('/').pop();
+        if (!filename) return;
+        await this.deleteAvatarFileByFilename(filename);
     }
 }

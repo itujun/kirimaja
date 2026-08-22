@@ -17,11 +17,9 @@ import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 import { BaseResponse } from '../roles/interface/base-response.interface';
 import { ProfileResponse } from './response/profile.response';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import {
     ALLOWED_AVATAR_MIME_TYPES,
-    AVATAR_UPLOAD_DIR,
     MAX_AVATAR_SIZE_BYTES,
 } from './constants/avatar.constant';
 
@@ -43,21 +41,20 @@ export class ProfileController {
     @Patch()
     @UseInterceptors(
         FileInterceptor('avatar', {
-            storage: diskStorage({
-                destination: AVATAR_UPLOAD_DIR,
-                filename: (req, file, cb) => {
-                    const uniqueSuffix =
-                        Date.now() + '-' + Math.round(Math.random() * 1e9);
-                    cb(null, uniqueSuffix + extname(file.originalname));
-                },
-            }),
-            // Tanpa ini, endpoint bisa disalahgunakan untuk upload file
-            // raksasa berulang-ulang dan menghabiskan disk server.
+            // memoryStorage (bukan diskStorage): file ditampung sebagai
+            // Buffer di memory dulu, BELUM ditulis ke disk. Penulisan ke
+            // disk baru dilakukan ProfileService setelah magic bytes-nya
+            // divalidasi -- supaya file yang isinya tidak valid tidak
+            // pernah sempat tersimpan ke disk sama sekali.
+            storage: memoryStorage(),
             limits: { fileSize: MAX_AVATAR_SIZE_BYTES },
-            // Cek MIME type asli file (bukan cuma ekstensi nama file yang
-            // gampang dipalsukan), dan lempar HttpException bawaan Nest
-            // (bukan `new Error(...)` generik) supaya response error-nya
-            // konsisten -- 415 Unsupported Media Type, bukan 500 mentah.
+            // Ini HANYA filter cepat berdasarkan mimetype yang diklaim
+            // client lewat header request -- gampang dipalsukan, jadi
+            // BUKAN pengaman utama. Tujuannya cuma menolak lebih awal
+            // file yang jelas-jelas salah, supaya tidak perlu dibaca
+            // penuh ke memory dulu. Validasi yang sesungguhnya (baca
+            // magic bytes dari isi file) terjadi di ProfileService,
+            // lewat assertValidAvatarBuffer().
             fileFilter: (req, file, cb) => {
                 if (!ALLOWED_AVATAR_MIME_TYPES.includes(file.mimetype)) {
                     return cb(
@@ -81,13 +78,11 @@ export class ProfileController {
             data: await this.profileService.update(
                 user.id,
                 updateProfileDto,
-                avatar ? avatar.filename : null,
+                avatar,
             ),
         };
     }
 
-    // Endpoint terpisah khusus ganti password -- lihat alasan keamanannya
-    // di ChangePasswordDto.
     @Patch('password')
     async changePassword(
         @CurrentUser() user: AuthenticatedUser,
