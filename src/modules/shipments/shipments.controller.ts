@@ -8,6 +8,7 @@ import {
     Delete,
     UseGuards,
     ParseIntPipe,
+    Req,
 } from '@nestjs/common';
 import { ShipmentsService } from './shipments.service';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
@@ -16,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/logged-in.guard';
 import { BaseResponse } from '../roles/interface/base-response.interface';
 import { Shipment } from '@prisma/client';
 import { RequirePermission } from '../auth/decorators/permission.decorator';
+import { Request } from 'express';
 
 @Controller('shipments')
 @UseGuards(JwtAuthGuard)
@@ -34,10 +36,12 @@ export class ShipmentsController {
     }
 
     @Get()
-    async findAll(): Promise<BaseResponse<Shipment[]>> {
+    async findAll(
+        @Req() req: Request & { user?: any },
+    ): Promise<BaseResponse<Shipment[]>> {
         return {
             message: 'Shipments retrieved successfully',
-            data: await this.shipmentsService.findAll(),
+            data: await this.shipmentsService.findAll(req.user.id),
         };
     }
 

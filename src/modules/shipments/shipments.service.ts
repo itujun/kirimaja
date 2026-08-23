@@ -265,8 +265,22 @@ export class ShipmentsService {
         });
     }
 
-    async findAll(): Promise<Shipment[]> {
-        return await this.prismaService.shipment.findMany();
+    async findAll(userId: number): Promise<Shipment[]> {
+        return await this.prismaService.shipment.findMany({
+            where: {
+                shipmentDetail: {
+                    userId,
+                },
+            },
+            include: {
+                shipmentDetail: true,
+                payment: true,
+                shipmentHistory: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
     }
 
     async findOne(id: number): Promise<Shipment> {
@@ -275,11 +289,9 @@ export class ShipmentsService {
                 id,
             },
             include: {
-                shipmentDetail: {
-                    include: {
-                        user: true,
-                    },
-                },
+                shipmentDetail: true,
+                payment: true,
+                shipmentHistory: true,
             },
         });
         if (!shipment) {
