@@ -435,4 +435,36 @@ export class ShipmentsService {
 
         return this.pdfService.generateShipmentPdf(pdfData);
     }
+
+    async findShipmentByTrackingNumber(
+        trackingNumber: string,
+    ): Promise<Shipment> {
+        const shipment = await this.prismaService.shipment.findFirst({
+            where: {
+                trackingNumber,
+            },
+            include: {
+                shipmentDetail: {
+                    include: {
+                        user: true,
+                        address: true,
+                    },
+                },
+                payment: true,
+                shipmentHistories: {
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                },
+            },
+        });
+
+        if (!shipment) {
+            throw new NotFoundException(
+                `Shipment with tracking number ${trackingNumber} not found`,
+            );
+        }
+
+        return shipment;
+    }
 }
