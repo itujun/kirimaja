@@ -135,6 +135,19 @@ export class ShipmentsService {
             );
         }
 
+        try {
+            await this.queueService.addPaymentExpiryJob(
+                {
+                    paymentId: payment.id,
+                    shipmentId: shipment.id,
+                    externalId: invoice.externalId!,
+                },
+                invoice.expiryDate,
+            );
+        } catch (error) {
+            console.error('Failed to add payment expiry job to queue: ', error);
+        }
+
         return shipment;
     }
 
