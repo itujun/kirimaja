@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
-import path from 'path';
 import puppeteer from 'puppeteer';
-import fs from 'fs';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 
 export interface ShipmentPdfData {
     // Shipment info
@@ -118,26 +118,26 @@ export class PdfService {
             return this.templateCache.get(templateName)!;
         }
 
-        const templatePath = path.join(
+        const templatePath = join(
             './src/common/pdf',
             'templates',
             templateName,
         );
-        const templateSource = fs.readFileSync(templatePath, 'utf8');
+        const templateSource = readFileSync(templatePath, 'utf8');
         const template = Handlebars.compile(templateSource);
         this.templateCache.set(templateName, template);
         return template;
     }
 
     private async loadCssFile(cssFileName: string): Promise<string> {
-        const cssPath = path.join('./src/common/pdf', 'templates', cssFileName);
-        return fs.readFileSync(cssPath, 'utf8');
+        const cssPath = join('./src/common/pdf', 'templates', cssFileName);
+        return readFileSync(cssPath, 'utf8');
     }
 
     private getBase64Image(imagePath: string): string | undefined {
         try {
-            if (fs.existsSync(imagePath)) {
-                const imageBuffer = fs.readFileSync(imagePath);
+            if (existsSync(imagePath)) {
+                const imageBuffer = readFileSync(imagePath);
                 const base64Image = imageBuffer.toString('base64');
                 return base64Image;
             } else {
