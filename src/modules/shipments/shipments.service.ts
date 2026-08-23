@@ -18,6 +18,10 @@ import { QrCodeService } from 'src/common/qrcode/qrcode.service';
 import { XenditWebhookDto } from './dto/xendit-webhook.dto';
 import { ShipmentStatus } from 'src/common/enum/shipment-status.enum';
 import { PdfService, ShipmentPdfData } from 'src/common/pdf/pdf.service';
+import {
+    SHIPMENT_WITH_RELATIONS_INCLUDE,
+    ShipmentWithRelations,
+} from 'src/common/prisma/prisma-includes';
 
 @Injectable()
 export class ShipmentsService {
@@ -308,21 +312,19 @@ export class ShipmentsService {
         });
     }
 
-    async findAll(userId: number): Promise<Shipment[]> {
+    async findAll(userId: number): Promise<ShipmentWithRelations[]> {
         return await this.prismaService.shipment.findMany({
             where: {
                 shipmentDetail: {
                     userId,
                 },
             },
-            include: {
-                shipmentDetail: true,
-                payment: true,
-                shipmentHistories: true,
-            },
+            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
             orderBy: {
                 createdAt: 'desc',
             },
+            take: 20, // default page size — lihat catatan pagination di bawah
+            skip: 0,
         });
     }
 

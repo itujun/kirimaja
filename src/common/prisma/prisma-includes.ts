@@ -19,3 +19,18 @@ export const ROLE_WITH_PERMISSIONS_INCLUDE =
 export type RoleWithPermissions = Prisma.RoleGetPayload<{
     include: typeof ROLE_WITH_PERMISSIONS_INCLUDE;
 }>;
+
+// Single source of truth untuk bentuk "Shipment + relasi lengkapnya".
+// Dipakai di ShipmentsService.findAll() (dan findOne(), karena bentuk
+// include-nya identik -- daripada duplikat literal include yang sama
+// persis di dua tempat).
+export const SHIPMENT_WITH_RELATIONS_INCLUDE =
+    Prisma.validator<Prisma.ShipmentInclude>()({
+        shipmentDetail: true,
+        payment: true,
+        shipmentHistories: true,
+    });
+
+export type ShipmentWithRelations = Prisma.ShipmentGetPayload<{
+    include: typeof SHIPMENT_WITH_RELATIONS_INCLUDE;
+}>;

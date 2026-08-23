@@ -6,7 +6,6 @@ import {
     Param,
     UseGuards,
     ParseIntPipe,
-    Req,
     Res,
 } from '@nestjs/common';
 import { ShipmentsService } from './shipments.service';
@@ -19,6 +18,7 @@ import { Request, Response } from 'express';
 import { PermissionGuard } from '../auth/guards/permission.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
+import { ShipmentWithRelations } from 'src/common/prisma/prisma-includes';
 
 @Controller('shipments')
 @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -42,11 +42,11 @@ export class ShipmentsController {
 
     @Get()
     async findAll(
-        @Req() req: Request & { user?: any },
-    ): Promise<BaseResponse<Shipment[]>> {
+        @CurrentUser() user: AuthenticatedUser,
+    ): Promise<BaseResponse<ShipmentWithRelations[]>> {
         return {
             message: 'Shipments retrieved successfully',
-            data: await this.shipmentsService.findAll(req.user.id),
+            data: await this.shipmentsService.findAll(user.id),
         };
     }
 
