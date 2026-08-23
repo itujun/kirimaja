@@ -66,6 +66,11 @@ export class PdfService {
         } catch (error) {
             console.error('Error generating PDF:', error);
             throw error;
+        } finally {
+            // finally dijamin selalu jalan, baik return berhasil maupun
+            // error dilempar -- ini satu-satunya cara memastikan browser
+            // selalu ditutup dan tidak menumpuk jadi resource leak.
+            await browser.close();
         }
     }
 
