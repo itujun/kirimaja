@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+// Dibatasi ke nilai yang benar-benar didukung oleh calculateShipmentCost().
+// Sebelumnya field ini cuma divalidasi sebagai "string tidak kosong", jadi
+// nilai sembarangan (typo, atau nilai yang belum didukung) lolos validasi
+// lalu diam-diam di-fallback ke tarif "regular" oleh calculateShipmentCost()
+// TANPA error apa pun -- pelanggan bisa merasa pilih "same_day" tapi
+// ditagih tarif "regular", dan nilai sampahnya ikut tersimpan ke DB.
+const DELIVERY_TYPES = ['same_day', 'next_day', 'regular'] as const;
+
 const createShipmentSchema = z.object({
     pickup_address_id: z
         .number({
@@ -41,12 +49,10 @@ const createShipmentSchema = z.object({
             invalid_type_error: 'Package type must be a string',
         })
         .min(1, 'Package type must be at least 1 characters'),
-    delivery_type: z
-        .string({
-            required_error: 'Delivery type is required',
-            invalid_type_error: 'Delivery type must be a string',
-        })
-        .min(1, 'Delivery type must be at least 1 characters'),
+    delivery_type: z.enum(DELIVERY_TYPES, {
+        required_error: 'Delivery type is required',
+        invalid_type_error: `Delivery type must be one of: ${DELIVERY_TYPES.join(', ')}`,
+    }),
 });
 
 export class CreateShipmentDto {
@@ -59,6 +65,11 @@ export class CreateShipmentDto {
         public recipient_phone: string,
         public weight: number,
         public package_type: string,
-        public delivery_type: string,
+        public delivery_type: (typeof DELIVERY_TYPES)[number],
     ) {}
 }
+
+// Di-export supaya bisa dipakai ulang sebagai tipe parameter di
+// ShipmentsService.calculateShipmentCost(), alih-alih ditulis `string`
+// generik di sana (yang membuka celah delivery_type sembarangan tadi).
+export type DeliveryType = (typeof DELIVERY_TYPES)[number];

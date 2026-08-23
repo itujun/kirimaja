@@ -2,9 +2,9 @@ import {
     BadRequestException,
     Injectable,
     NotFoundException,
+    ServiceUnavailableException,
 } from '@nestjs/common';
-import { CreateShipmentDto } from './dto/create-shipment.dto';
-import { UpdateShipmentDto } from './dto/update-shipment.dto';
+import { CreateShipmentDto, DeliveryType } from './dto/create-shipment.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { QueueService } from 'src/common/queue/queue.service';
 import { OpenCageService } from 'src/common/opencage/opencage.service';
@@ -31,23 +31,47 @@ export class ShipmentsService {
         private pdfService: PdfService,
     ) {}
 
-    async create(createShipmentDto: CreateShipmentDto): Promise<Shipment> {
-        const { lat, lng } = await this.openCageService.geocode(
-            createShipmentDto.destination_address,
-        );
-
+    async create(
+        createShipmentDto: CreateShipmentDto,
+        userId: number,
+    ): Promise<Shipment> {
+        // 1) Validasi pickup address DULUAN (query DB lokal, murah) --
+        //    sebelum panggil OpenCage (API eksternal berbayar & rate
+        //    limited). Urutan lama memanggil geocode() lebih dulu berarti
+        //    setiap request dengan pickup_address_id yang salah tetap
+        //    membakar 1 API call ke OpenCage secara sia-sia.
+        //
+        // 2) `userId` WAJIB ikut jadi filter. Sebelumnya endpoint ini
+        //    rentan IDOR -- user A bisa create shipment memakai
+        //    pickup_address_id milik user B asal ID-nya diketahui/ditebak,
+        //    dan shipment yang terbentuk jadi "milik" user B (via
+        //    userAddress.userId), bukan user A yang benar-benar request.
         const userAddress = await this.prismaService.userAddress.findFirst({
             where: {
                 id: createShipmentDto.pickup_address_id,
+                userId,
             },
             include: {
                 user: true,
             },
         });
 
-        if (!userAddress || !userAddress.latitude || !userAddress.longitude) {
+        if (
+            !userAddress ||
+            userAddress.latitude === null ||
+            userAddress.longitude === null
+        ) {
+            // Eksplisit cek `=== null`, BUKAN falsy check
+            // (`!userAddress.latitude`). Falsy check salah menganggap
+            // latitude = 0 sebagai "tidak ada", padahal 0 derajat lintang
+            // itu valid (garis khatulistiwa -- relevan untuk app
+            // Indonesia, mis. Pontianak nyaris tepat di 0°).
             throw new NotFoundException('Pickup address not found');
         }
+
+        const { lat, lng } = await this.openCageService.geocode(
+            createShipmentDto.destination_address,
+        );
 
         const distance = getDistance(
             {
@@ -74,7 +98,6 @@ export class ShipmentsService {
                 },
             });
 
-            // Create the shipment details
             await tx.shipmentDetail.create({
                 data: {
                     shipmentId: newShipment.id,
@@ -97,14 +120,32 @@ export class ShipmentsService {
             return newShipment;
         });
 
-        const invoice = await this.xenditService.createInvoice({
-            externalId: `INV-${Date.now()}-${shipment.id}`,
-            amount: shipmentCost.totalPrice,
-            payerEmail: userAddress.user.email,
-            description: `Shipment #${shipment.id} from ${userAddress.address} to ${createShipmentDto.destination_address}`,
-            successRedirectUrl: `${this.configService.get('FRONTEND_URL')}/send-package/detail/${shipment.id}`,
-            invoiceDuration: 86400, // 24 hours in seconds
-        });
+        let invoice;
+        try {
+            invoice = await this.xenditService.createInvoice({
+                externalId: `INV-${Date.now()}-${shipment.id}`,
+                amount: shipmentCost.totalPrice,
+                payerEmail: userAddress.user.email,
+                description: `Shipment #${shipment.id} from ${userAddress.address} to ${createShipmentDto.destination_address}`,
+                successRedirectUrl: `${this.configService.get('FRONTEND_URL')}/send-package/detail/${shipment.id}`,
+                invoiceDuration: 86400, // 24 hours in seconds
+            });
+        } catch (error) {
+            // Kompensasi: shipment + shipmentDetail SUDAH ter-commit di
+            // transaksi sebelumnya. Kalau error di sini dibiarkan lempar
+            // begitu saja, shipment itu "nyangkut" permanen -- statusnya
+            // PENDING selamanya, tanpa invoice, dan tidak akan pernah
+            // di-expire oleh job apa pun (job expiry baru didaftarkan
+            // setelah invoice berhasil dibuat, lihat di bawah).
+            console.error('Failed to create Xendit invoice: ', error);
+            await this.prismaService.shipment.update({
+                where: { id: shipment.id },
+                data: { paymentStatus: PaymentStatus.FAILED },
+            });
+            throw new ServiceUnavailableException(
+                'Failed to create payment invoice, please try again later',
+            );
+        }
 
         const payment = await this.prismaService.$transaction(async (tx) => {
             const createPayment = await tx.payment.create({
@@ -122,7 +163,7 @@ export class ShipmentsService {
                 data: {
                     shipmentId: shipment.id,
                     status: PaymentStatus.PENDING,
-                    description: `Shipment created with total price ${shipmentCost.totalPrice} cents`,
+                    description: `Shipment created with total price ${shipmentCost.totalPrice}`,
                 },
             });
 
@@ -305,47 +346,55 @@ export class ShipmentsService {
     private calculateShipmentCost(
         distance: number,
         weight: number,
-        deliveryType: string,
+        deliveryType: DeliveryType,
     ): {
         totalPrice: number;
         basePrice: number;
         weightPrice: number;
         distancePrice: number;
     } {
-        const baseRates = {
+        // Nilai di bawah ini dalam Rupiah utuh, BUKAN "cents" seperti yang
+        // tertulis di komentar lama pada shipmentHistory.description --
+        // sudah dirapikan di atas supaya tidak menyesatkan pembaca
+        // berikutnya (mis. ada yang mengira harus dibagi 100).
+        const baseRates: Record<DeliveryType, number> = {
             same_day: 15000,
             next_day: 10000,
             regular: 5000,
         };
 
-        const weightRates = {
+        const weightRates: Record<DeliveryType, number> = {
             same_day: 1000,
             next_day: 800,
             regular: 500,
         };
 
-        const distanceTierRates = {
+        const distanceTierRates: Record<
+            DeliveryType,
+            { tier1: number; tier2: number; tier3: number }
+        > = {
             same_day: {
                 tier1: 8000, // 0-50 km
                 tier2: 12000, // 50-100 km
                 tier3: 15000, // 100+ km (per 100km block)
             },
             next_day: {
-                tier1: 6000, // 0-50 km
-                tier2: 9000, // 50-100 km
-                tier3: 12000, // 100+ km (per 100km block)
+                tier1: 6000,
+                tier2: 9000,
+                tier3: 12000,
             },
             regular: {
-                tier1: 4000, // 0-50 km
-                tier2: 6000, // 50-100 km
-                tier3: 8000, // 100+ km (per 100km block)
+                tier1: 4000,
+                tier2: 6000,
+                tier3: 8000,
             },
         };
 
-        const basePrice = baseRates[deliveryType] || baseRates.regular;
-        const weightRate = weightRates[deliveryType] || weightRates.regular;
-        const distanceRate =
-            distanceTierRates[deliveryType] || distanceTierRates.regular;
+        // Tidak perlu fallback `|| baseRates.regular` lagi -- deliveryType
+        // sudah dijamin salah satu dari 3 nilai valid oleh Zod enum di DTO.
+        const basePrice = baseRates[deliveryType];
+        const weightRate = weightRates[deliveryType];
+        const distanceRate = distanceTierRates[deliveryType];
 
         const weightKg = Math.ceil(weight / 1000); // Convert grams to kg
         const weightPrice = weightKg * weightRate;
@@ -364,7 +413,7 @@ export class ShipmentsService {
 
         const totalPrice = basePrice + weightPrice + distancePrice;
 
-        const minimumPrice = 10000; // Minimum price in cents
+        const minimumPrice = 10000;
 
         const finalPrice = Math.max(totalPrice, minimumPrice);
 
@@ -384,8 +433,8 @@ export class ShipmentsService {
             include: {
                 shipmentDetail: {
                     include: {
-                        user: true, // Include user information
-                        address: true, // Include address information
+                        user: true,
+                        address: true,
                     },
                 },
                 payment: true,

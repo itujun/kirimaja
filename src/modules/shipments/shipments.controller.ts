@@ -16,9 +16,12 @@ import { BaseResponse } from '../roles/interface/base-response.interface';
 import { Shipment } from '@prisma/client';
 import { RequirePermission } from '../auth/decorators/permission.decorator';
 import { Request, Response } from 'express';
+import { PermissionGuard } from '../auth/guards/permission.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 
 @Controller('shipments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 export class ShipmentsController {
     constructor(private readonly shipmentsService: ShipmentsService) {}
 
@@ -26,9 +29,13 @@ export class ShipmentsController {
     @RequirePermission('shipments.create')
     async create(
         @Body() createShipmentDto: CreateShipmentDto,
+        @CurrentUser() user: AuthenticatedUser,
     ): Promise<BaseResponse<Shipment>> {
         return {
-            data: await this.shipmentsService.create(createShipmentDto),
+            data: await this.shipmentsService.create(
+                createShipmentDto,
+                user.id,
+            ),
             message: 'Shipment created successfully',
         };
     }
