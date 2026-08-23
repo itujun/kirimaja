@@ -1,4 +1,4 @@
-import { z, ZodObject } from 'zod';
+import { z } from 'zod';
 
 export const createUserAddressesSchema = z.object({
     address: z
@@ -19,16 +19,14 @@ export const createUserAddressesSchema = z.object({
             invalid_type_error: 'Label must be a string',
         })
         .min(1, 'Label must be at least 1 characters'),
-    photo: z.string().optional().nullable(),
 });
 
 export class CreateUserAddressesDto {
-    static schema: ZodObject<any> = createUserAddressesSchema;
+    static schema: z.ZodObject<any> = createUserAddressesSchema;
 
     constructor(
         public address: string,
         public tag: string,
         public label: string,
-        public photo: string | null,
     ) {}
 }

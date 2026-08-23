@@ -28,13 +28,6 @@ const updateProfileSchema = z.object({
         })
         .min(10, 'Phone number must be at least 10 characters')
         .optional(),
-    avatar: z
-        .string({
-            required_error: 'Avatar is required',
-            invalid_type_error: 'Avatar must be a string',
-        })
-        .optional()
-        .nullable(),
 });
 
 export class UpdateProfileDto {
@@ -44,6 +37,5 @@ export class UpdateProfileDto {
         public name?: string,
         public email?: string,
         public phone_number?: string,
-        public avatar?: string | null,
     ) {}
 }

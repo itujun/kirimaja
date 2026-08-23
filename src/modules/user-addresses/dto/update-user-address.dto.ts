@@ -10,6 +10,5 @@ export class UpdateUserAddressDto {
         public address?: string,
         public tag?: string,
         public label?: string,
-        public photo?: string | null,
     ) {}
 }
