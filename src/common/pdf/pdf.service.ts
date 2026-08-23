@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
 import path from 'path';
 import puppeteer from 'puppeteer';
+import fs from 'fs';
 
 export interface ShipmentPdfData {
     // Shipment info
@@ -9,6 +10,7 @@ export interface ShipmentPdfData {
     shipmentId: number;
     createdAt: Date;
     deliveryType: string;
+    packageType: string;
     weight: number;
     price: number;
     distance: number;
@@ -72,7 +74,7 @@ export class PdfService {
         const css = await this.loadCssFile('shipping-pdf.css');
 
         const qrCodeBase64 = data.qrCodePath
-            ? this.getBase64Image(data.qrCodePath)
+            ? this.getBase64Image(`public/${data.qrCodePath}`)
             : '';
 
         const templateDate = {
@@ -127,7 +129,7 @@ export class PdfService {
         return fs.readFileSync(cssPath, 'utf8');
     }
 
-    private getBase64Image(imagePath: string): string {
+    private getBase64Image(imagePath: string): string | undefined {
         try {
             if (fs.existsSync(imagePath)) {
                 const imageBuffer = fs.readFileSync(imagePath);

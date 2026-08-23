@@ -17,6 +17,7 @@ import { Env } from 'src/config/env.schema';
 import { QrCodeService } from 'src/common/qrcode/qrcode.service';
 import { XenditWebhookDto } from './dto/xendit-webhook.dto';
 import { ShipmentStatus } from 'src/common/enum/shipment-status.enum';
+import { PdfService, ShipmentPdfData } from 'src/common/pdf/pdf.service';
 
 @Injectable()
 export class ShipmentsService {
@@ -27,6 +28,7 @@ export class ShipmentsService {
         private xenditService: XenditService,
         private readonly configService: ConfigService<Env, true>,
         private qrcodeService: QrCodeService,
+        private pdfService: PdfService,
     ) {}
 
     async create(createShipmentDto: CreateShipmentDto): Promise<Shipment> {
@@ -275,7 +277,7 @@ export class ShipmentsService {
             include: {
                 shipmentDetail: true,
                 payment: true,
-                shipmentHistory: true,
+                shipmentHistories: true,
             },
             orderBy: {
                 createdAt: 'desc',
@@ -291,7 +293,7 @@ export class ShipmentsService {
             include: {
                 shipmentDetail: true,
                 payment: true,
-                shipmentHistory: true,
+                shipmentHistories: true,
             },
         });
         if (!shipment) {
@@ -372,5 +374,65 @@ export class ShipmentsService {
             weightPrice,
             distancePrice,
         };
+    }
+
+    async generateShipmentPdf(shipmentId: number): Promise<Buffer> {
+        const shipment = await this.prismaService.shipment.findUnique({
+            where: {
+                id: shipmentId,
+            },
+            include: {
+                shipmentDetail: {
+                    include: {
+                        user: true, // Include user information
+                        address: true, // Include address information
+                    },
+                },
+                payment: true,
+            },
+        });
+
+        if (!shipment) {
+            throw new NotFoundException(
+                `Shipment with ID ${shipmentId} not found`,
+            );
+        }
+
+        const shipmentDetail = shipment.shipmentDetail;
+        if (!shipmentDetail) {
+            throw new NotFoundException(
+                `Shipment detail for shipment with ID ${shipmentId} not found`,
+            );
+        }
+
+        const pdfData: ShipmentPdfData = {
+            trackingNumber: shipment.trackingNumber || 'N/A',
+            shipmentId: shipment.id,
+            createdAt: shipment.createdAt,
+            deliveryType: shipmentDetail.deliveryType,
+            packageType: shipmentDetail.packageType,
+            weight: shipmentDetail.weight || 0,
+            price: shipment.price || 0,
+            distance: shipment.distance || 0,
+            paymentStatus: shipment.paymentStatus || 'N/A',
+            deliveryStatus: shipment.deliveryStatus || 'N/A',
+            basePrice: shipmentDetail.basePrice || 0,
+            weightPrice: shipmentDetail.weightPrice || 0,
+            distancePrice: shipmentDetail.distancePrice || 0,
+            senderName: shipmentDetail.user.name || 'N/A',
+            senderEmail: shipmentDetail.user.email || 'N/A',
+            senderPhone: shipmentDetail.user.phoneNumber || 'N/A',
+            pickupAddress: `${shipmentDetail.address?.address}` || 'N/A',
+            recipientName: shipmentDetail.recipientName || 'N/A',
+            recipientPhone: shipmentDetail.recipientPhone || 'N/A',
+            deliveryAddress: `${shipmentDetail.destinationAddress}` || 'N/A',
+            qrCodePath:
+                shipment.qrCodeImage ||
+                (await this.qrcodeService.generateQrCode(
+                    shipment.trackingNumber || 'N/A',
+                )),
+        };
+
+        return this.pdfService.generateShipmentPdf(pdfData);
     }
 }
