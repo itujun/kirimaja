@@ -15,7 +15,16 @@ export class QrCodeService {
 
     async generateQrCode(trackingNumber: string): Promise<string> {
         try {
-            const fileName = `${trackingNumber}_${Date.now()}.png`;
+            // Sanitasi: trackingNumber bisa berisi karakter yang tidak aman
+            // untuk dipakai sebagai nama file (mis. '/' pada fallback "N/A"),
+            // yang oleh OS dibaca sebagai pemisah folder dan menyebabkan
+            // ENOENT. Ganti semua karakter selain alfanumerik/-/_ dengan '_'.
+            const safeTrackingNumber = trackingNumber.replace(
+                /[^a-zA-Z0-9-_]/g,
+                '_',
+            );
+
+            const fileName = `${safeTrackingNumber}_${Date.now()}.png`;
             const filePath = join(this.uploadsPath, fileName);
 
             await QRCode.toFile(filePath, trackingNumber);
