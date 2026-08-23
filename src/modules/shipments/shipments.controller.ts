@@ -33,30 +33,21 @@ export class ShipmentsController {
         };
     }
 
-    // @Get()
-    // async findAll(): Promise<BaseResponse<Shipment[]>> {
-    //     return this.shipmentsService.findAll();
-    // }
+    @Get()
+    async findAll(): Promise<BaseResponse<Shipment[]>> {
+        return {
+            message: 'Shipments retrieved successfully',
+            data: await this.shipmentsService.findAll(),
+        };
+    }
 
-    // @Get(':id')
-    // async findOne(
-    //     @Param('id', ParseIntPipe) id: number,
-    // ): Promise<BaseResponse<Shipment>> {
-    //     return this.shipmentsService.findOne(+id);
-    // }
-
-    // @Patch(':id')
-    // async update(
-    //     @Param('id', ParseIntPipe) id: number,
-    //     @Body() updateShipmentDto: UpdateShipmentDto,
-    // ): Promise<BaseResponse<Shipment>> {
-    //     return this.shipmentsService.update(+id, updateShipmentDto);
-    // }
-
-    // @Delete(':id')
-    // async remove(
-    //     @Param('id', ParseIntPipe) id: number,
-    // ): Promise<BaseResponse<void>> {
-    //     return this.shipmentsService.remove(+id);
-    // }
+    @Get(':id')
+    async findOne(
+        @Param('id', ParseIntPipe) id: number,
+    ): Promise<BaseResponse<Shipment>> {
+        return {
+            message: `Shipment with ID ${id} retrieved successfully`,
+            data: await this.shipmentsService.findOne(id),
+        };
+    }
 }

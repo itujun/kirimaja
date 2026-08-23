@@ -1,0 +1,130 @@
+<html lang='en'>
+    <head>
+        <meta charset='UTF-8' />
+        <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+        <title>Shipping Label - {{trackingNumber}}</title>
+        <style>{{styles}}</style>
+    </head>
+    <body>
+        <div class='shipping-label'>
+            <!-- Tracking Section -->
+            <div class='tracking-section'>
+                <div class='tracking-info'>
+                    <h2>Trx12344</h2>
+                    <p>Shipment ID: #123 | Created: 01 January 2024</p>
+                </div>
+                <div class='qr-code-section'>
+                    <img
+                        src='data:image/png;base64,{{qrCodeBase64}}'
+                        alt='QR Code'
+                    />
+                    <p class='qr-label'>Scan for tracking</p>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class='main-content'>
+                <!-- Addresses Section -->
+                <div class='addresses-section'>
+                    <!-- Sender Information -->
+                    <div class='address-box'>
+                        <h3>📦 SENDER DETAILS</h3>
+                        <div class='address-detail'>
+                            <strong>Name:</strong>
+                            {{senderName}}
+                        </div>
+                        <div class='address-detail'>
+                            <strong>Email:</strong>
+                            {{senderEmail}}
+                        </div>
+                        <div class='address-detail'>
+                            <strong>Phone:</strong>
+                            {{senderPhone}}
+                        </div>
+                        <div class='address-detail'>
+                            <strong>Address:</strong><br />
+                            {{pickupAddress}}
+                        </div>
+                    </div>
+
+                    <!-- Recipient Information -->
+                    <div class='address-box'>
+                        <h3>📍 RECIPIENT DETAILS</h3>
+                        <div class='address-detail'>
+                            <strong>Name:</strong>
+                            {{recipientName}}
+                        </div>
+                        <div class='address-detail'>
+                            <strong>Phone:</strong>
+                            {{recipientPhone}}
+                        </div>
+                        <div class='address-detail'>
+                            <strong>Address:</strong><br />
+                            {{destinationAddress}}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Package Details -->
+                <div class='package-details'>
+                    <h3>📋 PACKAGE INFORMATION</h3>
+                    <div class='details-grid'>
+                        <div class='detail-item'>
+                            <span class='detail-label'>Package Type:</span>
+                            <span class='detail-value'>{{packageType}}</span>
+                        </div>
+                        <div class='detail-item'>
+                            <span class='detail-label'>Delivery Type:</span>
+                            <span class='detail-value'>{{deliveryType}}</span>
+                        </div>
+                        <div class='detail-item'>
+                            <span class='detail-label'>Weight:</span>
+                            <span class='detail-value'>{{weight}}g</span>
+                        </div>
+                        <div class='detail-item'>
+                            <span class='detail-label'>Distance:</span>
+                            <span class='detail-value'>{{distance}} km</span>
+                        </div>
+                        <div class='detail-item'>
+                            <span class='detail-label'>Base Price:</span>
+                            <span class='detail-value currency'>IDR
+                                {{basePrice}}</span>
+                        </div>
+                        <div class='detail-item'>
+                            <span class='detail-label'>Weight Price:</span>
+                            <span class='detail-value currency'>IDR
+                                {{weightPrice}}</span>
+                        </div>
+                        <div class='detail-item'>
+                            <span class='detail-label'>Distance Price:</span>
+                            <span class='detail-value currency'>IDR
+                                {{distancePrice}}</span>
+                        </div>
+                        <div class='detail-item'>
+                            <span class='detail-label'><strong>Total Cost:</strong></span>
+                            <span class='detail-value currency'><strong>IDR
+                                    {{price}}</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class='footer'>
+                <p>
+                    <strong>Kirim Aja Logistics</strong>
+                    - Your Trusted Delivery Partner
+                </p>
+                <p>
+                    Customer Service: +62-21-1234-5678 | Email:
+                    support@kirimaja.com | www.kirimaja.com
+                </p>
+                <p>
+                    Generated on
+                    {{generatedDate}}
+                    | This is a computer-generated document
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

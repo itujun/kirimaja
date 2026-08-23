@@ -265,24 +265,28 @@ export class ShipmentsService {
         });
     }
 
-    // async findAll(): Promise<Shipment[]> {
-    //     return `This action returns all shipments`;
-    // }
+    async findAll(): Promise<Shipment[]> {
+        return await this.prismaService.shipment.findMany();
+    }
 
-    // async findOne(id: number): Promise<Shipment> {
-    //     return `This action returns a #${id} shipment`;
-    // }
-
-    // async update(
-    //     id: number,
-    //     updateShipmentDto: UpdateShipmentDto,
-    // ): Promise<Shipment> {
-    //     return `This action updates a #${id} shipment`;
-    // }
-
-    // async remove(id: number): Promise<Shipment> {
-    //     return `This action removes a #${id} shipment`;
-    // }
+    async findOne(id: number): Promise<Shipment> {
+        const shipment = await this.prismaService.shipment.findUnique({
+            where: {
+                id,
+            },
+            include: {
+                shipmentDetail: {
+                    include: {
+                        user: true,
+                    },
+                },
+            },
+        });
+        if (!shipment) {
+            throw new NotFoundException(`Shipment with ID ${id} not found`);
+        }
+        return shipment;
+    }
 
     private calculateShipmentCost(
         distance: number,
