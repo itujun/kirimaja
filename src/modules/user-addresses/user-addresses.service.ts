@@ -30,15 +30,10 @@ export class UserAddressesService {
         userId: number,
         photoFile?: Express.Multer.File,
     ): Promise<UserAddress> {
-        // 1. Geocode DULUAN. Ini panggilan eksternal yang paling gampang
-        // gagal (alamat tidak ditemukan, API down, dsb). Kalau gagal di
-        // sini, kita belum menulis apa pun ke disk -- tidak ada yang
-        // perlu dibersihkan.
         const { lat, lng } = await this.getCoordinatesFromAddress(
             createUserAddressDto.address,
         );
 
-        // 2. Baru kalau geocode sukses, validasi + simpan foto ke disk.
         let newPhotoFilename: string | undefined;
         if (photoFile) {
             newPhotoFilename = await this.savePhotoFile(photoFile);
@@ -59,8 +54,6 @@ export class UserAddressesService {
                 },
             });
         } catch (error) {
-            // 3. DB create gagal PADAHAL foto sudah kadung ditulis ke
-            // disk di step 2 -- hapus lagi supaya tidak jadi file yatim.
             if (newPhotoFilename) {
                 await this.deletePhotoFileByFilename(newPhotoFilename);
             }
@@ -85,7 +78,10 @@ export class UserAddressesService {
         });
     }
 
-    async findOne(id: number): Promise<UserAddress> {
+    // `userId` WAJIB diisi dari @CurrentUser() di controller. Tanpa ini,
+    // user A bisa akses/ubah/hapus address milik user B hanya dengan
+    // menebak `id` di URL (IDOR -- Insecure Direct Object Reference).
+    async findOne(id: number, userId: number): Promise<UserAddress> {
         const userAddress = await this.prismaService.userAddress.findUnique({
             where: { id },
             include: {
@@ -100,18 +96,25 @@ export class UserAddressesService {
                 },
             },
         });
-        if (!userAddress) {
+
+        // Sengaja 404 untuk KEDUA kasus (tidak ada / bukan milik user
+        // ini) -- bukan 403 untuk kasus kedua. Kalau dibedakan, client
+        // bisa membedakan "id tidak ada" vs "id ada tapi punya orang
+        // lain", yang berarti bocor info untuk menebak id valid di DB.
+        if (!userAddress || userAddress.userId !== userId) {
             throw new NotFoundException(`UserAddress with ID ${id} not found`);
         }
+
         return userAddress;
     }
 
     async update(
         id: number,
+        userId: number,
         updateUserAddressDto: UpdateUserAddressDto,
         photoFile?: Express.Multer.File,
     ): Promise<UserAddress> {
-        const existing = await this.findOne(id);
+        const existing = await this.findOne(id, userId);
 
         let newLatitude = existing.latitude;
         let newLongitude = existing.longitude;
@@ -151,8 +154,6 @@ export class UserAddressesService {
             throw error;
         }
 
-        // DB update sukses -- baru sekarang aman hapus foto LAMA (kalau
-        // memang ada foto baru yang menggantikannya).
         if (newPhotoFilename && existing.photo) {
             await this.deletePhotoFileByUrl(existing.photo);
         }
@@ -160,11 +161,8 @@ export class UserAddressesService {
         return updated;
     }
 
-    async remove(id: number): Promise<void> {
-        const existing = await this.findOne(id);
-        // Hapus row DB dulu. Kalau ini gagal (mis. FK constraint), file
-        // fisik tidak ikut terhapus -- konsisten dengan prinsip "jangan
-        // hapus sesuatu di disk sebelum perubahan di DB dipastikan sukses".
+    async remove(id: number, userId: number): Promise<void> {
+        const existing = await this.findOne(id, userId);
         await this.prismaService.userAddress.delete({ where: { id } });
 
         if (existing.photo) {

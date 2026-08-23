@@ -27,13 +27,7 @@ import {
     MAX_ADDRESS_PHOTO_SIZE_BYTES,
 } from './constants/address-photo.constant';
 
-// Dipakai di create() DAN update() -- disatukan di sini biar konfigurasi
-// upload untuk kedua endpoint selalu identik, tidak ada risiko salah satu
-// endpoint ke-update sementara yang lain lupa di-sync.
 const photoInterceptor = FileInterceptor('photo', {
-    // memoryStorage: file ditampung sebagai Buffer dulu, BELUM ditulis ke
-    // disk. Penulisan baru dilakukan UserAddressesService setelah magic
-    // bytes-nya divalidasi (assertValidAddressPhotoBuffer).
     storage: memoryStorage(),
     limits: { fileSize: MAX_ADDRESS_PHOTO_SIZE_BYTES },
     fileFilter: (req, file, cb) => {
@@ -83,17 +77,19 @@ export class UserAddressesController {
 
     @Get(':id')
     async findOne(
+        @CurrentUser() user: AuthenticatedUser,
         @Param('id', ParseIntPipe) id: number,
     ): Promise<BaseResponse<UserAddress>> {
         return {
             message: `user address with ID ${id} found successfully`,
-            data: await this.userAddressesService.findOne(id),
+            data: await this.userAddressesService.findOne(id, user.id),
         };
     }
 
     @Patch(':id')
     @UseInterceptors(photoInterceptor)
     async update(
+        @CurrentUser() user: AuthenticatedUser,
         @Param('id', ParseIntPipe) id: number,
         @Body() updateUserAddressDto: UpdateUserAddressDto,
         @UploadedFile() photo: Express.Multer.File | undefined,
@@ -102,6 +98,7 @@ export class UserAddressesController {
             message: `user address with ID ${id} updated successfully`,
             data: await this.userAddressesService.update(
                 id,
+                user.id,
                 updateUserAddressDto,
                 photo,
             ),
@@ -110,9 +107,10 @@ export class UserAddressesController {
 
     @Delete(':id')
     async remove(
+        @CurrentUser() user: AuthenticatedUser,
         @Param('id', ParseIntPipe) id: number,
     ): Promise<BaseResponse<void>> {
-        await this.userAddressesService.remove(id);
+        await this.userAddressesService.remove(id, user.id);
         return {
             message: `user address with ID ${id} deleted successfully`,
             data: null,
