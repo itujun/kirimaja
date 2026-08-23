@@ -10,6 +10,7 @@ export interface EmailJobData {
     amount?: number;
     paymentUrl?: string;
     expiryDate?: Date;
+    trackingNumber?: string;
 }
 
 @Processor('email-queue')

@@ -54,4 +54,15 @@ export class QueueService {
             removeOnFail: 5,
         });
     }
+
+    async cancelPaymentExpiredJob(paymentId: number) {
+        const jobs = await this.paymentQueue.getJobs(['delayed', 'waiting']);
+
+        for (const job of jobs) {
+            if (job.data.paymentId === paymentId) {
+                await job.remove();
+                break;
+            }
+        }
+    }
 }

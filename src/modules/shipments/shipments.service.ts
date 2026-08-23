@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { UpdateShipmentDto } from './dto/update-shipment.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -10,6 +14,9 @@ import { getDistance } from 'geolib';
 import { PaymentStatus } from 'src/common/enum/payment-status.enum';
 import { ConfigService } from '@nestjs/config';
 import { Env } from 'src/config/env.schema';
+import { QrCodeService } from 'src/common/qrcode/qrcode.service';
+import { XenditWebhookDto } from './dto/xendit-webhook.dto';
+import { ShipmentStatus } from 'src/common/enum/shipment-status.enum';
 
 @Injectable()
 export class ShipmentsService {
@@ -19,6 +26,7 @@ export class ShipmentsService {
         private openCageService: OpenCageService,
         private xenditService: XenditService,
         private readonly configService: ConfigService<Env, true>,
+        private qrcodeService: QrCodeService,
     ) {}
 
     async create(createShipmentDto: CreateShipmentDto): Promise<Shipment> {
@@ -149,6 +157,112 @@ export class ShipmentsService {
         }
 
         return shipment;
+    }
+
+    async handlePaymentWebhook(webhookData: XenditWebhookDto): Promise<void> {
+        const payment = await this.prismaService.payment.findFirst({
+            where: {
+                externalId: webhookData.external_id,
+            },
+            include: {
+                shipment: {
+                    include: {
+                        shipmentDetail: {
+                            include: {
+                                user: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!payment) {
+            throw new NotFoundException(
+                `Payment with external ID ${webhookData.external_id} not found`,
+            );
+        }
+
+        await this.prismaService.$transaction(async (tx) => {
+            const updatedPayment = await tx.payment.update({
+                where: {
+                    id: payment.id,
+                },
+                data: {
+                    status: webhookData.status,
+                    paymentMethod: webhookData.payment_method,
+                },
+            });
+
+            if (
+                webhookData.status === PaymentStatus.PAID ||
+                webhookData.status === PaymentStatus.SETTLED
+            ) {
+                const trackingNumber = `KA${webhookData.id}`;
+
+                let qrcodeImagePath: string | null = null;
+                try {
+                    qrcodeImagePath =
+                        await this.qrCodeService.generateQrCode(trackingNumber);
+                } catch (error) {
+                    console.error('Failed to generate QR code: ', error);
+                    throw new BadRequestException(
+                        `Failed to generate QR code for tracking number: ${trackingNumber}`,
+                    );
+                }
+
+                await tx.shipment.update({
+                    where: {
+                        id: payment.shipmentId,
+                    },
+                    data: {
+                        trackingNumber,
+                        deliveryStatus: ShipmentStatus.READY_TO_PICKUP,
+                        paymentStatus: webhookData.status,
+                        qrCodeImage: qrcodeImagePath,
+                    },
+                });
+
+                await tx.shipmentHistory.create({
+                    data: {
+                        shipmentId: payment.shipmentId,
+                        status: ShipmentStatus.READY_TO_PICKUP,
+                        description: `Payment ${webhookData.status} for shipment with tracking number ${trackingNumber}`,
+                        userId: payment.shipment.shipmentDetail?.userId,
+                    },
+                });
+
+                try {
+                    await this.queueService.cancelPaymentExpiredJob(payment.id);
+                } catch (error) {
+                    console.error(
+                        'Failed to cancel payment expiry job: ',
+                        error,
+                    );
+                }
+
+                try {
+                    const userEmail =
+                        payment.shipment.shipmentDetail?.user.email;
+                    if (userEmail) {
+                        await this.queueService.addEmailJob({
+                            type: 'payment-success',
+                            to: userEmail,
+                            shipmentId: payment.shipmentId,
+                            amount:
+                                payment.shipment.price || webhookData.amount,
+                            trackingNumber:
+                                payment.shipment.trackingNumber || undefined,
+                        });
+                    }
+                } catch (error) {
+                    console.error(
+                        'Failed to add payment failed email job to queue: ',
+                        error,
+                    );
+                }
+            }
+        });
     }
 
     // async findAll(): Promise<Shipment[]> {
