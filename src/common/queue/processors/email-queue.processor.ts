@@ -47,6 +47,17 @@ export class EmailQueueProcessor {
                         `Payment notification email sent to: ${data.to}`,
                     );
                     break;
+                case 'payment-success':
+                    await this.emailService.sendPaymentSuccess(
+                        data.to,
+                        data.shipmentId || 0,
+                        data.amount || 0,
+                        data.trackingNumber,
+                    );
+                    this.logger.log(
+                        `Payment success email sent to: ${data.to}`,
+                    );
+                    break;
                 default:
                     this.logger.error(`Unknown email type: ${data.type}`);
                     break;

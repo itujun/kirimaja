@@ -27,19 +27,21 @@ export class XenditWebhookDto {
     static schema: ZodObject<any> = xenditWebhookSchema;
 
     constructor(
+        // required dulu
         public readonly id: string,
         public readonly external_id: string,
-        public readonly user_id?: string,
-        public readonly is_high?: boolean,
-        public readonly payment_method?: string,
         public readonly status:
             | 'PENDING'
             | 'PAID'
             | 'SETTLED'
             | 'EXPIRED'
             | 'FAILED',
-        public readonly merchant_name?: string,
         public readonly amount: number,
+        // optional setelahnya
+        public readonly user_id?: string,
+        public readonly is_high?: boolean,
+        public readonly payment_method?: string,
+        public readonly merchant_name?: string,
         public readonly paid_amount?: number,
         public readonly bank_code?: string,
         public readonly paid_at?: string,

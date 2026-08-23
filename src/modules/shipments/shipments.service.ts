@@ -203,7 +203,7 @@ export class ShipmentsService {
                 let qrcodeImagePath: string | null = null;
                 try {
                     qrcodeImagePath =
-                        await this.qrCodeService.generateQrCode(trackingNumber);
+                        await this.qrcodeService.generateQrCode(trackingNumber);
                 } catch (error) {
                     console.error('Failed to generate QR code: ', error);
                     throw new BadRequestException(
