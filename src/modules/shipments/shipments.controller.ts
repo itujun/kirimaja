@@ -51,12 +51,14 @@ export class ShipmentsController {
     }
 
     @Get(':id')
+    @RequirePermission('shipments.read')
     async findOne(
         @Param('id', ParseIntPipe) id: number,
-    ): Promise<BaseResponse<Shipment>> {
+        @CurrentUser() user: AuthenticatedUser,
+    ): Promise<BaseResponse<ShipmentWithRelations>> {
         return {
             message: `Shipment with ID ${id} retrieved successfully`,
-            data: await this.shipmentsService.findOne(id),
+            data: await this.shipmentsService.findOne(id, user.id),
         };
     }
 

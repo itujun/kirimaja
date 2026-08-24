@@ -328,20 +328,27 @@ export class ShipmentsService {
         });
     }
 
-    async findOne(id: number): Promise<Shipment> {
+    async findOne(id: number, userId: number): Promise<ShipmentWithRelations> {
         const shipment = await this.prismaService.shipment.findUnique({
             where: {
                 id,
             },
-            include: {
-                shipmentDetail: true,
-                payment: true,
-                shipmentHistories: true,
-            },
+            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
         });
+
         if (!shipment) {
             throw new NotFoundException(`Shipment with ID ${id} not found`);
         }
+
+        if (shipment.shipmentDetail?.userId !== userId) {
+            // Sengaja NotFoundException, BUKAN ForbiddenException -- lihat
+            // penjelasan "404 vs 403" di atas. Kalau pakai 403 di sini, itu
+            // justru mengonfirmasi ke penyerang bahwa ID tersebut valid dan
+            // bisa dipakai untuk menebak-nebak ID shipment mana saja yang
+            // benar-benar ada di sistem (enumeration attack).
+            throw new NotFoundException(`Shipment with ID ${id} not found`);
+        }
+
         return shipment;
     }
 
