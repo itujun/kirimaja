@@ -78,9 +78,14 @@ export class ShipmentsController {
     @Get(':id/pdf')
     async generateShipmentPdf(
         @Param('id', ParseIntPipe) id: number,
+        @CurrentUser() user: AuthenticatedUser,
         @Res() res: Response,
     ): Promise<void> {
-        const pdfBuffer = await this.shipmentsService.generateShipmentPdf(id);
+        const pdfBuffer = await this.shipmentsService.generateShipmentPdf(
+            id,
+            user.id,
+            this.canViewAllShipments(user),
+        );
         res.set({
             'Content-Type': 'application/pdf',
             'Content-Disposition': `attachment; filename="shipment-${id}.pdf"`,

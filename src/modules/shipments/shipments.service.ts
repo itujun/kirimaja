@@ -446,11 +446,20 @@ export class ShipmentsService {
         };
     }
 
-    async generateShipmentPdf(shipmentId: number): Promise<Buffer> {
-        const shipment = await this.prismaService.shipment.findUnique({
-            where: {
-                id: shipmentId,
-            },
+    async generateShipmentPdf(
+        shipmentId: number,
+        userId: number,
+        canViewAll: boolean,
+    ): Promise<Buffer> {
+        const shipment = await this.prismaService.shipment.findFirst({
+            where: canViewAll
+                ? { id: shipmentId }
+                : {
+                      id: shipmentId,
+                      shipmentDetail: {
+                          userId,
+                      },
+                  },
             include: {
                 shipmentDetail: {
                     include: {
@@ -475,8 +484,18 @@ export class ShipmentsService {
             );
         }
 
+        // Label pengiriman baru bermakna setelah shipment dibayar dan dapat
+        // nomor resi. Sebelum itu, PDF yang dihasilkan akan berisi QR code
+        // untuk teks "N/A" -- bukan cuma tidak berguna, tapi berbahaya kalau
+        // sampai tercetak fisik dan dianggap label yang sah.
+        if (!shipment.trackingNumber) {
+            throw new BadRequestException(
+                'Label pengiriman belum bisa dicetak karena pembayaran belum selesai',
+            );
+        }
+
         const pdfData: ShipmentPdfData = {
-            trackingNumber: shipment.trackingNumber || 'N/A',
+            trackingNumber: shipment.trackingNumber,
             shipmentId: shipment.id,
             createdAt: shipment.createdAt,
             deliveryType: shipmentDetail.deliveryType,
@@ -492,14 +511,17 @@ export class ShipmentsService {
             senderName: shipmentDetail.user.name || 'N/A',
             senderEmail: shipmentDetail.user.email || 'N/A',
             senderPhone: shipmentDetail.user.phoneNumber || 'N/A',
-            pickupAddress: `${shipmentDetail.address?.address}` || 'N/A',
+            // Fallback dicek SEBELUM di-convert ke string, bukan sesudah --
+            // `${undefined}` di JS jadi string "undefined" yang truthy, jadi
+            // `|| 'N/A'` versi lama tidak pernah kepakai kalau address null.
+            pickupAddress: shipmentDetail.address?.address ?? 'N/A',
             recipientName: shipmentDetail.recipientName || 'N/A',
             recipientPhone: shipmentDetail.recipientPhone || 'N/A',
-            deliveryAddress: `${shipmentDetail.destinationAddress}` || 'N/A',
+            deliveryAddress: shipmentDetail.destinationAddress ?? 'N/A',
             qrCodePath:
                 shipment.qrCodeImage ||
                 (await this.qrcodeService.generateQrCode(
-                    shipment.trackingNumber || 'N/A',
+                    shipment.trackingNumber,
                 )),
         };
 
