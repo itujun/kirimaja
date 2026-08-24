@@ -312,40 +312,52 @@ export class ShipmentsService {
         });
     }
 
-    async findAll(userId: number): Promise<ShipmentWithRelations[]> {
+    async findAll(
+        userId: number,
+        canViewAll: boolean,
+    ): Promise<ShipmentWithRelations[]> {
         return await this.prismaService.shipment.findMany({
-            where: {
-                shipmentDetail: {
-                    userId,
-                },
-            },
+            where: canViewAll
+                ? undefined
+                : {
+                      shipmentDetail: {
+                          userId,
+                      },
+                  },
             include: SHIPMENT_WITH_RELATIONS_INCLUDE,
             orderBy: {
                 createdAt: 'desc',
             },
-            take: 20, // default page size — lihat catatan pagination di bawah
+            take: 20,
             skip: 0,
         });
     }
 
-    async findOne(id: number, userId: number): Promise<ShipmentWithRelations> {
-        const shipment = await this.prismaService.shipment.findUnique({
-            where: {
-                id,
-            },
+    async findOne(
+        id: number,
+        userId: number,
+        canViewAll: boolean,
+    ): Promise<ShipmentWithRelations> {
+        // Syarat kepemilikan sekarang ikut masuk ke WHERE clause (sama seperti
+        // findAll), bukan diambil dulu baru difilter di application code.
+        // Row yang bukan hak user (dan canViewAll false) tidak akan pernah
+        // ditarik ke memori aplikasi sama sekali.
+        const shipment = await this.prismaService.shipment.findFirst({
+            where: canViewAll
+                ? { id }
+                : {
+                      id,
+                      shipmentDetail: {
+                          userId,
+                      },
+                  },
             include: SHIPMENT_WITH_RELATIONS_INCLUDE,
         });
 
         if (!shipment) {
-            throw new NotFoundException(`Shipment with ID ${id} not found`);
-        }
-
-        if (shipment.shipmentDetail?.userId !== userId) {
-            // Sengaja NotFoundException, BUKAN ForbiddenException -- lihat
-            // penjelasan "404 vs 403" di atas. Kalau pakai 403 di sini, itu
-            // justru mengonfirmasi ke penyerang bahwa ID tersebut valid dan
-            // bisa dipakai untuk menebak-nebak ID shipment mana saja yang
-            // benar-benar ada di sistem (enumeration attack).
+            // Tetap 404 generik untuk 2 kemungkinan sekaligus (tidak ada /
+            // bukan milikmu) -- prinsip cegah enumeration attack masih
+            // berlaku sama seperti sebelumnya.
             throw new NotFoundException(`Shipment with ID ${id} not found`);
         }
 
