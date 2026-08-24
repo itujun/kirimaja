@@ -9,6 +9,7 @@ import { ShipmentWebhookController } from './webhook/shipment-webhook.controller
 import { QrCodeService } from 'src/common/qrcode/qrcode.service';
 import { PdfService } from 'src/common/pdf/pdf.service';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { XenditWebhookGuard } from './webhook/xendit-webhook.guard';
 
 @Module({
     // PermissionsModule wajib di-import karena PermissionGuard (sekarang
@@ -24,6 +25,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
         XenditService,
         QrCodeService,
         PdfService,
+        XenditWebhookGuard,
     ],
 })
 export class ShipmentsModule {}

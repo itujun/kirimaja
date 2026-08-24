@@ -43,6 +43,11 @@ export const envSchema = z.object({
     XENDIT_SECRET_KEY: z
         .string({ required_error: 'XENDIT_SECRET_KEY wajib diisi di .env' })
         .min(1, 'XENDIT_SECRET_KEY tidak boleh kosong'),
+    XENDIT_CALLBACK_TOKEN: z
+        .string({
+            required_error: 'XENDIT_CALLBACK_TOKEN wajib diisi di .env',
+        })
+        .min(1, 'XENDIT_CALLBACK_TOKEN tidak boleh kosong'),
 
     // FRONTEND
     FRONTEND_URL: z

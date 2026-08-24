@@ -250,15 +250,30 @@ export class ShipmentsService {
         }
 
         await this.prismaService.$transaction(async (tx) => {
-            const updatedPayment = await tx.payment.update({
+            // updateMany dengan syarat `status: notIn [PAID, SETTLED]` di WHERE
+            // clause -- baris ini HANYA benar-benar ter-update kalau payment
+            // belum pernah dikonfirmasi lunas sebelumnya. Atomik di level
+            // database, jadi aman dari race condition webhook duplikat/retry,
+            // sekaligus melindungi dari webhook yang datang tidak berurutan.
+            const updateResult = await tx.payment.updateMany({
                 where: {
                     id: payment.id,
+                    status: {
+                        notIn: [PaymentStatus.PAID, PaymentStatus.SETTLED],
+                    },
                 },
                 data: {
                     status: webhookData.status,
                     paymentMethod: webhookData.payment_method,
                 },
             });
+
+            if (updateResult.count === 0) {
+                console.log(
+                    `Webhook untuk payment ${payment.id} (external_id: ${webhookData.external_id}) dilewati -- payment sudah PAID/SETTLED sebelumnya (idempotent skip).`,
+                );
+                return;
+            }
 
             if (
                 webhookData.status === PaymentStatus.PAID ||
