@@ -8,7 +8,7 @@ import {
     ParseIntPipe,
     Res,
 } from '@nestjs/common';
-import { ShipmentsService } from './shipments.service';
+import { ShipmentsService, ShipmentTrackingView } from './shipments.service';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { JwtAuthGuard } from '../auth/guards/logged-in.guard';
 import { BaseResponse } from '../roles/interface/base-response.interface';
@@ -96,7 +96,7 @@ export class ShipmentsController {
     @Get('track/:trackingNumber')
     async findByTrackingNumber(
         @Param('trackingNumber') trackingNumber: string,
-    ): Promise<BaseResponse<Shipment>> {
+    ): Promise<BaseResponse<ShipmentTrackingView>> {
         return {
             message: `Shipment with tracking number ${trackingNumber} retrieved successfully`,
             data: await this.shipmentsService.findShipmentByTrackingNumber(

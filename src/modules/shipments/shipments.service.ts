@@ -23,6 +23,25 @@ import {
     ShipmentWithRelations,
 } from 'src/common/prisma/prisma-includes';
 
+// Bentuk response khusus untuk fitur tracking publik -- sengaja BUKAN
+// tipe Shipment penuh. Endpoint ini terbuka untuk siapa saja yang login
+// dan tahu nomor resinya (mirip JNE/J&T), jadi cuma boleh berisi info
+// status & histori perjalanan, TIDAK boleh ada email/no HP pengirim
+// ataupun detail pembayaran (invoiceId, invoiceUrl, dst).
+export interface ShipmentTrackingView {
+    trackingNumber: string;
+    deliveryStatus: string;
+    paymentStatus: string;
+    packageType: string;
+    deliveryType: string;
+    createdAt: Date;
+    history: {
+        status: string;
+        description: string;
+        createdAt: Date;
+    }[];
+}
+
 @Injectable()
 export class ShipmentsService {
     constructor(
@@ -530,24 +549,38 @@ export class ShipmentsService {
 
     async findShipmentByTrackingNumber(
         trackingNumber: string,
-    ): Promise<Shipment> {
+    ): Promise<ShipmentTrackingView> {
         const shipment = await this.prismaService.shipment.findFirst({
             where: {
                 trackingNumber,
             },
-            include: {
+            select: {
+                trackingNumber: true,
+                deliveryStatus: true,
+                paymentStatus: true,
+                createdAt: true,
                 shipmentDetail: {
-                    include: {
-                        user: true,
-                        address: true,
+                    select: {
+                        packageType: true,
+                        deliveryType: true,
+                        // Sengaja TIDAK select user/address/recipientPhone di
+                        // sini -- itu yang menyebabkan email & data pribadi
+                        // pengirim ikut bocor ke siapa pun yang tahu nomor
+                        // resi di versi sebelumnya.
                     },
                 },
-                payment: true,
                 shipmentHistories: {
+                    select: {
+                        status: true,
+                        description: true,
+                        createdAt: true,
+                    },
                     orderBy: {
                         createdAt: 'desc',
                     },
                 },
+                // payment TIDAK di-select sama sekali -- sesuai keputusan
+                // kamu, detail pembayaran bukan bagian dari fitur tracking.
             },
         });
 
@@ -557,6 +590,18 @@ export class ShipmentsService {
             );
         }
 
-        return shipment;
+        return {
+            trackingNumber: shipment.trackingNumber ?? trackingNumber,
+            deliveryStatus: shipment.deliveryStatus || 'N/A',
+            paymentStatus: shipment.paymentStatus || 'N/A',
+            packageType: shipment.shipmentDetail?.packageType || 'N/A',
+            deliveryType: shipment.shipmentDetail?.deliveryType || 'N/A',
+            createdAt: shipment.createdAt,
+            history: shipment.shipmentHistories.map((h) => ({
+                status: h.status,
+                description: h.description!,
+                createdAt: h.createdAt,
+            })),
+        };
     }
 }
