@@ -10,6 +10,8 @@ import { QrCodeService } from 'src/common/qrcode/qrcode.service';
 import { PdfService } from 'src/common/pdf/pdf.service';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { XenditWebhookGuard } from './webhook/xendit-webhook.guard';
+import { ShipmentsCourierController } from './courier/courier.controller';
+import { ShipmentCourierService } from './courier/courier.service';
 
 @Module({
     // PermissionsModule wajib di-import karena PermissionGuard (sekarang
@@ -18,7 +20,11 @@ import { XenditWebhookGuard } from './webhook/xendit-webhook.guard';
     // dependencies of PermissionGuard" -- pola yang sama seperti catatan
     // sebelumnya soal PermissionsService.
     imports: [QueueModule, PrismaModule, PermissionsModule],
-    controllers: [ShipmentsController, ShipmentWebhookController],
+    controllers: [
+        ShipmentsController,
+        ShipmentWebhookController,
+        ShipmentsCourierController,
+    ],
     providers: [
         ShipmentsService,
         OpenCageService,
@@ -26,6 +32,7 @@ import { XenditWebhookGuard } from './webhook/xendit-webhook.guard';
         QrCodeService,
         PdfService,
         XenditWebhookGuard,
+        ShipmentCourierService,
     ],
 })
 export class ShipmentsModule {}
