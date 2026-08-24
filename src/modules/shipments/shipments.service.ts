@@ -565,7 +565,7 @@ export class ShipmentsService {
     async findShipmentByTrackingNumber(
         trackingNumber: string,
     ): Promise<ShipmentTrackingView> {
-        const shipment = await this.prismaService.shipment.findFirst({
+        const shipment = await this.prismaService.shipment.findUnique({
             where: {
                 trackingNumber,
             },
@@ -578,10 +578,6 @@ export class ShipmentsService {
                     select: {
                         packageType: true,
                         deliveryType: true,
-                        // Sengaja TIDAK select user/address/recipientPhone di
-                        // sini -- itu yang menyebabkan email & data pribadi
-                        // pengirim ikut bocor ke siapa pun yang tahu nomor
-                        // resi di versi sebelumnya.
                     },
                 },
                 shipmentHistories: {
@@ -594,8 +590,6 @@ export class ShipmentsService {
                         createdAt: 'desc',
                     },
                 },
-                // payment TIDAK di-select sama sekali -- sesuai keputusan
-                // kamu, detail pembayaran bukan bagian dari fitur tracking.
             },
         });
 
@@ -614,7 +608,7 @@ export class ShipmentsService {
             createdAt: shipment.createdAt,
             history: shipment.shipmentHistories.map((h) => ({
                 status: h.status,
-                description: h.description!,
+                description: h.description,
                 createdAt: h.createdAt,
             })),
         };
