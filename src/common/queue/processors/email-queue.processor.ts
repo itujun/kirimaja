@@ -58,6 +58,16 @@ export class EmailQueueProcessor {
                         `Payment success email sent to: ${data.to}`,
                     );
                     break;
+                case 'payment-expired':
+                    await this.emailService.sendPaymentExpired(
+                        data.to,
+                        data.shipmentId || 0,
+                        data.amount || 0,
+                    );
+                    this.logger.log(
+                        `Payment expired email sent to: ${data.to}`,
+                    );
+                    break;
                 default:
                     this.logger.error(`Unknown email type: ${data.type}`);
                     break;

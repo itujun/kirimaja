@@ -1,0 +1,78 @@
+<html lang='id'>
+    <head>
+        <meta charset='UTF-8' />
+        <title>Pembayaran Kadaluarsa</title>
+    </head>
+    <body
+        style='margin:0; padding:0; background-color:#f4f4f5; font-family: Arial, Helvetica, sans-serif;'
+    >
+        <table
+            role='presentation'
+            width='100%'
+            cellpadding='0'
+            cellspacing='0'
+            style='padding: 24px 0;'
+        >
+            <tr>
+                <td align='center'>
+                    <table
+                        role='presentation'
+                        width='480'
+                        cellpadding='0'
+                        cellspacing='0'
+                        style='background-color:#ffffff; border-radius:8px; overflow:hidden;'
+                    >
+                        <tr>
+                            <td
+                                style='background-color:#dc2626; padding:20px 24px;'
+                            >
+                                <h1
+                                    style='margin:0; color:#ffffff; font-size:18px;'
+                                >Pembayaran Kadaluarsa</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style='padding:24px;'>
+                                <p
+                                    style='margin:0 0 16px; color:#18181b; font-size:14px; line-height:1.6;'
+                                >
+                                    Halo,
+                                </p>
+                                <p
+                                    style='margin:0 0 16px; color:#18181b; font-size:14px; line-height:1.6;'
+                                >
+                                    Waktu pembayaran untuk pengiriman
+                                    <strong>#{{shipmentId}}</strong>
+                                    sebesar
+                                    <strong>Rp{{amount}}</strong>
+                                    telah berakhir pada
+                                    {{expiredDate}}, dan pesanan ini otomatis
+                                    dibatalkan.
+                                </p>
+                                <p
+                                    style='margin:0 0 16px; color:#18181b; font-size:14px; line-height:1.6;'
+                                >
+                                    Kalau kamu masih ingin mengirim paket ini,
+                                    silakan buat pengiriman baru melalui
+                                    aplikasi Kirimaja.
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td
+                                style='padding:16px 24px; background-color:#f4f4f5;'
+                            >
+                                <p
+                                    style='margin:0; color:#71717a; font-size:12px;'
+                                >
+                                    Email ini dikirim otomatis, mohon tidak
+                                    membalas ke alamat ini.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

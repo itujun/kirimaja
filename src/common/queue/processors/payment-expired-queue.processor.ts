@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PaymentStatus } from 'src/common/enum/payment-status.enum';
 import { PrismaService } from 'src/common/prisma/prisma.service';
+import { QueueService } from '../queue.service';
 
 export interface PaymentExpiryJobData {
     paymentId: number;
@@ -15,7 +16,10 @@ export interface PaymentExpiryJobData {
 export class PaymentExpiredQueueProcessor {
     private readonly logger = new Logger(PaymentExpiredQueueProcessor.name);
 
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly queueService: QueueService,
+    ) {}
 
     @Process('payment-expired-job')
     async handleExpiryPayment(job: Job<PaymentExpiryJobData>) {
@@ -25,7 +29,6 @@ export class PaymentExpiredQueueProcessor {
         );
 
         try {
-            // Check if payment is still pending
             const payment = await this.prismaService.payment.findUnique({
                 where: { id: data.paymentId },
                 include: {
@@ -51,7 +54,12 @@ export class PaymentExpiredQueueProcessor {
                 return;
             }
 
-            // Only expire if payment is still PENDING
+            // Guard ini juga yang menyebabkan job ini SKIP total kalau
+            // webhook Xendit sudah lebih dulu mengubah status (race
+            // condition yang dijelaskan sebelumnya) -- makanya jalur
+            // webhook di ShipmentsService sekarang juga punya logic yang
+            // setara, supaya expiry tetap tertangani siapa pun yang
+            // menang duluan.
             if (payment.status !== PaymentStatus.PENDING) {
                 this.logger.log(
                     `Payment with ID ${data.paymentId} is no longer pending(status: ${payment.status}), skipping expiry`,
@@ -59,21 +67,17 @@ export class PaymentExpiredQueueProcessor {
                 return;
             }
 
-            // Update payment and shipment status to EXPIRED
             await this.prismaService.$transaction(async (tx) => {
-                // Update payment status
                 await tx.payment.update({
                     where: { id: data.paymentId },
                     data: { status: PaymentStatus.EXPIRED },
                 });
 
-                // Update shipment status
                 await tx.shipment.update({
                     where: { id: data.shipmentId },
                     data: { paymentStatus: PaymentStatus.EXPIRED },
                 });
 
-                // Add shipment history
                 await tx.shipmentHistory.create({
                     data: {
                         shipmentId: data.shipmentId,
@@ -87,8 +91,30 @@ export class PaymentExpiredQueueProcessor {
                 `Payment with ID ${data.paymentId} has been expired successfully`,
             );
 
-            // Note: We don't send email here as it will be handled by webhook processor
-            // when Xendit sends the expiry webhook
+            // Sebelumnya di sini ada catatan bahwa email akan dikirim oleh
+            // webhook processor saat Xendit mengirim webhook EXPIRED --
+            // ternyata asumsi itu salah, handlePaymentWebhook() dulu tidak
+            // pernah mengirim email untuk status selain PAID/SETTLED.
+            // Try-catch terpisah dari transaksi di atas -- kegagalan kirim
+            // email TIDAK BOLEH membuat seluruh job dianggap gagal dan
+            // di-retry BullMQ (retry akan mengulang proses yang sebenarnya
+            // sudah sukses di atas).
+            try {
+                const userEmail = payment.shipment.shipmentDetail?.user.email;
+                if (userEmail) {
+                    await this.queueService.addEmailJob({
+                        type: 'payment-expired',
+                        to: userEmail,
+                        shipmentId: data.shipmentId,
+                        amount: payment.shipment.price || 0,
+                    });
+                }
+            } catch (error) {
+                this.logger.error(
+                    `Failed to queue payment expired email for payment ID: ${data.paymentId}`,
+                    error,
+                );
+            }
         } catch (error) {
             this.logger.error(
                 `Failed processing payment expiry job for payment ID: ${data.paymentId}`,

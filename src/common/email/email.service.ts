@@ -104,4 +104,27 @@ export class EmailService {
 
         await this.transporter.sendMail(mailOptions);
     }
+
+    async sendPaymentExpired(
+        to: string,
+        shipmentId: number,
+        amount: number,
+    ): Promise<void> {
+        const templateData = {
+            shipmentId,
+            amount: amount.toLocaleString('id-ID'),
+            expiredDate: new Date().toLocaleDateString('id-ID'),
+        };
+
+        const html = this.compileTemplate('payment-expired', templateData);
+
+        const mailOptions = {
+            from: this.configService.get('SMTP_EMAIL_SENDER') || '',
+            to,
+            subject: `Pembayaran Kadaluarsa - Shipment #${shipmentId}`,
+            html,
+        };
+
+        await this.transporter.sendMail(mailOptions);
+    }
 }

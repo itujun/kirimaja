@@ -250,11 +250,6 @@ export class ShipmentsService {
         }
 
         await this.prismaService.$transaction(async (tx) => {
-            // updateMany dengan syarat `status: notIn [PAID, SETTLED]` di WHERE
-            // clause -- baris ini HANYA benar-benar ter-update kalau payment
-            // belum pernah dikonfirmasi lunas sebelumnya. Atomik di level
-            // database, jadi aman dari race condition webhook duplikat/retry,
-            // sekaligus melindungi dari webhook yang datang tidak berurutan.
             const updateResult = await tx.payment.updateMany({
                 where: {
                     id: payment.id,
@@ -339,6 +334,61 @@ export class ShipmentsService {
                 } catch (error) {
                     console.error(
                         'Failed to add payment failed email job to queue: ',
+                        error,
+                    );
+                }
+            } else if (
+                webhookData.status === PaymentStatus.EXPIRED ||
+                webhookData.status === PaymentStatus.FAILED
+            ) {
+                // Cabang BARU -- sebelumnya status selain PAID/SETTLED
+                // tidak melakukan apa pun selain update Payment.status di
+                // atas. Shipment.paymentStatus tidak pernah ikut berubah,
+                // tidak ada riwayat, dan tidak ada notifikasi ke customer
+                // kalau webhook Xendit (bukan job internal kita) yang
+                // lebih dulu memproses expiry ini.
+                await tx.shipment.update({
+                    where: {
+                        id: payment.shipmentId,
+                    },
+                    data: {
+                        paymentStatus: webhookData.status,
+                    },
+                });
+
+                await tx.shipmentHistory.create({
+                    data: {
+                        shipmentId: payment.shipmentId,
+                        status: webhookData.status,
+                        description: `Payment ${webhookData.status} via Xendit webhook`,
+                        userId: payment.shipment.shipmentDetail?.userId,
+                    },
+                });
+
+                try {
+                    await this.queueService.cancelPaymentExpiredJob(payment.id);
+                } catch (error) {
+                    console.error(
+                        'Failed to cancel payment expiry job: ',
+                        error,
+                    );
+                }
+
+                try {
+                    const userEmail =
+                        payment.shipment.shipmentDetail?.user.email;
+                    if (userEmail) {
+                        await this.queueService.addEmailJob({
+                            type: 'payment-expired',
+                            to: userEmail,
+                            shipmentId: payment.shipmentId,
+                            amount:
+                                payment.shipment.price || webhookData.amount,
+                        });
+                    }
+                } catch (error) {
+                    console.error(
+                        'Failed to add payment expired email job to queue: ',
                         error,
                     );
                 }
@@ -608,7 +658,7 @@ export class ShipmentsService {
             createdAt: shipment.createdAt,
             history: shipment.shipmentHistories.map((h) => ({
                 status: h.status,
-                description: h.description,
+                description: h.description!,
                 createdAt: h.createdAt,
             })),
         };
