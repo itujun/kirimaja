@@ -37,7 +37,12 @@ export class ShipmentsCourierController {
         };
     }
 
-    @Get('pick/:trackingNumber')
+    // POST, bukan GET -- endpoint ini mengubah state (deliveryStatus +
+    // menulis ShipmentHistory). GET wajib "safe" (tidak mengubah data di
+    // server), karena boleh di-cache, di-prefetch otomatis oleh browser/
+    // bot, dan di-retry otomatis oleh HTTP client -- semua itu berbahaya
+    // kalau endpoint-nya sebenarnya mengubah data.
+    @Post('pick/:trackingNumber')
     @RequirePermission('delivery.update')
     async pickShipment(
         @Param('trackingNumber') trackingNumber: string,
@@ -86,7 +91,8 @@ export class ShipmentsCourierController {
         };
     }
 
-    @Get('deliver-to-branch/:trackingNumber')
+    // POST, bukan GET -- alasan sama seperti pickShipment di atas.
+    @Post('deliver-to-branch/:trackingNumber')
     @RequirePermission('delivery.update')
     async deliverShipmentToBranch(
         @Param('trackingNumber') trackingNumber: string,
@@ -101,7 +107,8 @@ export class ShipmentsCourierController {
         };
     }
 
-    @Get('pick-shipment-from-branch/:trackingNumber')
+    // POST, bukan GET -- alasan sama seperti pickShipment di atas.
+    @Post('pick-shipment-from-branch/:trackingNumber')
     @RequirePermission('delivery.update')
     async pickShipmentFromBranch(
         @Param('trackingNumber') trackingNumber: string,
@@ -116,7 +123,8 @@ export class ShipmentsCourierController {
         };
     }
 
-    @Get('pickup-shipment-from-branch/:trackingNumber')
+    // POST, bukan GET -- alasan sama seperti pickShipment di atas.
+    @Post('pickup-shipment-from-branch/:trackingNumber')
     @RequirePermission('delivery.update')
     async pickupShipmentFromBranch(
         @Param('trackingNumber') trackingNumber: string,

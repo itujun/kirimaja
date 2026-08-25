@@ -40,23 +40,34 @@ export class ShipmentCourierService {
         });
     }
 
-    async pickShipment(
-        trackingNumber: string,
-        userId: number,
-    ): Promise<Shipment> {
-        const shipment = await this.prismaService.shipment.findUnique({
-            where: {
-                trackingNumber,
-            },
-            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
-        });
+    // Single source of truth untuk alur status kurir: setiap aksi HANYA
+    // boleh dijalankan kalau shipment sedang berada di salah satu status
+    // "predecessor" yang valid. Ini mencegah aksi dipanggil di luar urutan
+    // (mis. deliverToCustomer dipanggil padahal belum pernah pickUpShipment)
+    // atau dipanggil berulang kali (retry/double-tap) pada status yang sama.
+    //
+    // Khusus untuk pickShipment: predecessor-nya (READY_TO_PICKUP) HANYA
+    // pernah di-set oleh webhook Xendit bersamaan dengan paymentStatus jadi
+    // PAID/SETTLED (lihat shipments.service.ts). Jadi guard status ini
+    // otomatis juga menjamin shipment sudah lunas -- tidak perlu cek
+    // paymentStatus terpisah di sini.
+    private assertValidStatusTransition(
+        shipment: Shipment,
+        allowedCurrentStatuses: ShipmentStatus[],
+    ): void {
+        const currentStatus = shipment.deliveryStatus as ShipmentStatus | null;
 
-        if (!shipment) {
-            throw new NotFoundException(
-                `Shipment with tracking number ${trackingNumber} not found`,
+        if (!currentStatus || !allowedCurrentStatuses.includes(currentStatus)) {
+            throw new BadRequestException(
+                `Shipment with tracking number ${shipment.trackingNumber} has status ` +
+                    `"${currentStatus ?? 'NONE'}", but expected one of: ${allowedCurrentStatuses.join(', ')}`,
             );
         }
+    }
 
+    private async getUserBranchOrThrow(userId: number): Promise<{
+        branchId: number;
+    }> {
         const userBranch = await this.prismaService.employeeBranch.findFirst({
             where: {
                 userId,
@@ -72,6 +83,41 @@ export class ShipmentCourierService {
             );
         }
 
+        return userBranch;
+    }
+
+    private async getShipmentByTrackingNumberOrThrow(
+        trackingNumber: string,
+    ): Promise<Shipment> {
+        const shipment = await this.prismaService.shipment.findUnique({
+            where: {
+                trackingNumber,
+            },
+            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
+        });
+
+        if (!shipment) {
+            throw new NotFoundException(
+                `Shipment with tracking number ${trackingNumber} not found`,
+            );
+        }
+
+        return shipment;
+    }
+
+    async pickShipment(
+        trackingNumber: string,
+        userId: number,
+    ): Promise<Shipment> {
+        const shipment =
+            await this.getShipmentByTrackingNumberOrThrow(trackingNumber);
+
+        this.assertValidStatusTransition(shipment, [
+            ShipmentStatus.READY_TO_PICKUP,
+        ]);
+
+        const userBranch = await this.getUserBranchOrThrow(userId);
+
         return await this.prismaService.$transaction(async (tx) => {
             const updatedShipment = await tx.shipment.update({
                 where: {
@@ -86,6 +132,7 @@ export class ShipmentCourierService {
                 data: {
                     shipmentId: updatedShipment.id,
                     userId,
+                    branchId: userBranch.branchId,
                     status: ShipmentStatus.WAITING_PICKUP,
                     description: `Shipment with tracking number ${trackingNumber} is waiting for pickup by user with ID ${userId}`,
                 },
@@ -116,34 +163,22 @@ export class ShipmentCourierService {
             throw new BadRequestException(`Photo is required`);
         }
 
-        const shipment = await this.prismaService.shipment.findUnique({
-            where: {
-                trackingNumber,
-            },
-            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
-        });
+        const shipment =
+            await this.getShipmentByTrackingNumberOrThrow(trackingNumber);
 
-        if (!shipment) {
-            throw new NotFoundException(
-                `Shipment with tracking number ${trackingNumber} not found`,
-            );
-        }
+        this.assertValidStatusTransition(shipment, [
+            ShipmentStatus.WAITING_PICKUP,
+        ]);
 
-        const userBranch = await this.prismaService.employeeBranch.findFirst({
-            where: {
-                userId,
-            },
-            select: {
-                branchId: true,
-            },
-        });
+        const userBranch = await this.getUserBranchOrThrow(userId);
 
-        if (!userBranch) {
-            throw new NotFoundException(
-                `User with ID ${userId} does not have a branch`,
-            );
-        }
-
+        // File ditulis ke disk SEBELUM transaction DB dimulai -- ini
+        // sengaja, supaya proses I/O (yang relatif lambat) tidak ikut
+        // menahan lock transaction. Trade-off-nya: kalau transaction di
+        // bawah gagal, file ini jadi orphan (tidak tercatat di DB manapun).
+        // Untuk sekarang trade-off ini kita terima (sama seperti pola foto
+        // lain di project ini); pembersihan orphan file didaftarkan sebagai
+        // technical debt terpisah, bukan bagian dari sesi ini.
         const photoSaved = await this.savePhotoFile(photo);
 
         return await this.prismaService.$transaction(async (tx) => {
@@ -160,14 +195,22 @@ export class ShipmentCourierService {
                 data: {
                     shipmentId: updatedShipment.id,
                     userId,
+                    branchId: userBranch.branchId,
                     status: ShipmentStatus.PICKED_UP,
-                    description: `Shipment with tracking number ${trackingNumber} is waiting for pickup by user with ID ${userId}`,
+                    description: `Shipment with tracking number ${trackingNumber} has been picked up by user with ID ${userId}`,
                 },
             });
 
+            // FIX: sebelumnya `where: { id: updatedShipment.id }` -- itu
+            // salah, karena `id` di sini adalah PRIMARY KEY tabel
+            // shipment_details, BUKAN foreign key ke shipments. Nilainya
+            // kebetulan sama hari ini karena ShipmentDetail selalu dibuat
+            // 1:1 tepat setelah Shipment (lihat shipments.service.ts), tapi
+            // itu bukan jaminan struktural. `shipmentId` sudah ditandai
+            // @unique di schema justru untuk lookup seperti ini.
             await tx.shipmentDetail.update({
                 where: {
-                    id: updatedShipment.id,
+                    shipmentId: updatedShipment.id,
                 },
                 data: {
                     pickupProof: photoSaved,
@@ -182,33 +225,12 @@ export class ShipmentCourierService {
         trackingNumber: string,
         userId: number,
     ): Promise<Shipment> {
-        const shipment = await this.prismaService.shipment.findUnique({
-            where: {
-                trackingNumber,
-            },
-            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
-        });
+        const shipment =
+            await this.getShipmentByTrackingNumberOrThrow(trackingNumber);
 
-        if (!shipment) {
-            throw new NotFoundException(
-                `Shipment with tracking number ${trackingNumber} not found`,
-            );
-        }
+        this.assertValidStatusTransition(shipment, [ShipmentStatus.PICKED_UP]);
 
-        const userBranch = await this.prismaService.employeeBranch.findFirst({
-            where: {
-                userId,
-            },
-            select: {
-                branchId: true,
-            },
-        });
-
-        if (!userBranch) {
-            throw new NotFoundException(
-                `User with ID ${userId} does not have a branch`,
-            );
-        }
+        const userBranch = await this.getUserBranchOrThrow(userId);
 
         return await this.prismaService.$transaction(async (tx) => {
             const updatedShipment = await tx.shipment.update({
@@ -224,8 +246,9 @@ export class ShipmentCourierService {
                 data: {
                     shipmentId: updatedShipment.id,
                     userId,
+                    branchId: userBranch.branchId,
                     status: ShipmentStatus.IN_TRANSIT,
-                    description: `Shipment with tracking number ${trackingNumber} is waiting for pickup by user with ID ${userId}`,
+                    description: `Shipment with tracking number ${trackingNumber} is being delivered to branch by user with ID ${userId}`,
                 },
             });
 
@@ -237,33 +260,14 @@ export class ShipmentCourierService {
         trackingNumber: string,
         userId: number,
     ): Promise<Shipment> {
-        const shipment = await this.prismaService.shipment.findUnique({
-            where: {
-                trackingNumber,
-            },
-            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
-        });
+        const shipment =
+            await this.getShipmentByTrackingNumberOrThrow(trackingNumber);
 
-        if (!shipment) {
-            throw new NotFoundException(
-                `Shipment with tracking number ${trackingNumber} not found`,
-            );
-        }
+        this.assertValidStatusTransition(shipment, [
+            ShipmentStatus.READY_TO_PICKUP_AT_BRANCH,
+        ]);
 
-        const userBranch = await this.prismaService.employeeBranch.findFirst({
-            where: {
-                userId,
-            },
-            select: {
-                branchId: true,
-            },
-        });
-
-        if (!userBranch) {
-            throw new NotFoundException(
-                `User with ID ${userId} does not have a branch`,
-            );
-        }
+        const userBranch = await this.getUserBranchOrThrow(userId);
 
         return await this.prismaService.$transaction(async (tx) => {
             const updatedShipment = await tx.shipment.update({
@@ -279,8 +283,9 @@ export class ShipmentCourierService {
                 data: {
                     shipmentId: updatedShipment.id,
                     userId,
+                    branchId: userBranch.branchId,
                     status: ShipmentStatus.READY_TO_DELIVER,
-                    description: `Shipment with tracking number ${trackingNumber} is pick from branch by user with ID ${userId}`,
+                    description: `Shipment with tracking number ${trackingNumber} has been picked up from branch by user with ID ${userId}`,
                 },
             });
 
@@ -292,33 +297,14 @@ export class ShipmentCourierService {
         trackingNumber: string,
         userId: number,
     ): Promise<Shipment> {
-        const shipment = await this.prismaService.shipment.findUnique({
-            where: {
-                trackingNumber,
-            },
-            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
-        });
+        const shipment =
+            await this.getShipmentByTrackingNumberOrThrow(trackingNumber);
 
-        if (!shipment) {
-            throw new NotFoundException(
-                `Shipment with tracking number ${trackingNumber} not found`,
-            );
-        }
+        this.assertValidStatusTransition(shipment, [
+            ShipmentStatus.READY_TO_DELIVER,
+        ]);
 
-        const userBranch = await this.prismaService.employeeBranch.findFirst({
-            where: {
-                userId,
-            },
-            select: {
-                branchId: true,
-            },
-        });
-
-        if (!userBranch) {
-            throw new NotFoundException(
-                `User with ID ${userId} does not have a branch`,
-            );
-        }
+        const userBranch = await this.getUserBranchOrThrow(userId);
 
         return await this.prismaService.$transaction(async (tx) => {
             const updatedShipment = await tx.shipment.update({
@@ -334,8 +320,9 @@ export class ShipmentCourierService {
                 data: {
                     shipmentId: updatedShipment.id,
                     userId,
+                    branchId: userBranch.branchId,
                     status: ShipmentStatus.ON_THE_WAY_TO_ADDRESS,
-                    description: `Shipment with tracking number ${trackingNumber} is pickup from branch by user with ID ${userId}`,
+                    description: `Shipment with tracking number ${trackingNumber} is on the way to customer address by user with ID ${userId}`,
                 },
             });
 
@@ -352,33 +339,14 @@ export class ShipmentCourierService {
             throw new BadRequestException(`Photo is required`);
         }
 
-        const shipment = await this.prismaService.shipment.findUnique({
-            where: {
-                trackingNumber,
-            },
-            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
-        });
+        const shipment =
+            await this.getShipmentByTrackingNumberOrThrow(trackingNumber);
 
-        if (!shipment) {
-            throw new NotFoundException(
-                `Shipment with tracking number ${trackingNumber} not found`,
-            );
-        }
+        this.assertValidStatusTransition(shipment, [
+            ShipmentStatus.ON_THE_WAY_TO_ADDRESS,
+        ]);
 
-        const userBranch = await this.prismaService.employeeBranch.findFirst({
-            where: {
-                userId,
-            },
-            select: {
-                branchId: true,
-            },
-        });
-
-        if (!userBranch) {
-            throw new NotFoundException(
-                `User with ID ${userId} does not have a branch`,
-            );
-        }
+        const userBranch = await this.getUserBranchOrThrow(userId);
 
         const photoSaved = await this.savePhotoFile(photo);
 
@@ -396,14 +364,18 @@ export class ShipmentCourierService {
                 data: {
                     shipmentId: updatedShipment.id,
                     userId,
+                    branchId: userBranch.branchId,
                     status: ShipmentStatus.DELIVERED,
                     description: `Shipment with tracking number ${trackingNumber} is delivered to customer by user with ID ${userId}`,
                 },
             });
 
+            // FIX: sama seperti di pickUpShipment -- pakai `shipmentId`,
+            // bukan `id`, supaya mencari berdasarkan foreign key yang
+            // benar, bukan kebetulan kesamaan angka PK.
             await tx.shipmentDetail.update({
                 where: {
-                    id: updatedShipment.id,
+                    shipmentId: updatedShipment.id,
                 },
                 data: {
                     receiptProof: photoSaved,
