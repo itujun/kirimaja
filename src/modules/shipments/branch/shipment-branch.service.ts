@@ -7,6 +7,7 @@ import { Shipment, ShipmentBranchLog, User } from '@prisma/client';
 import { ShipmentStatus } from 'src/common/enum/shipment-status.enum';
 import { UserRole } from 'src/common/enum/user-role.enum';
 import { PrismaService } from 'src/common/prisma/prisma.service';
+import { ScanShipmentDto } from '../dto/scan-shipment.dto';
 
 @Injectable()
 export class ShipmentBranchService {
@@ -64,6 +65,108 @@ export class ShipmentBranchService {
         });
     }
 
+    async scanShipment(
+        scanData: ScanShipmentDto,
+        userId: number,
+    ): Promise<ShipmentBranchLog> {
+        const userBranch = await this.prismaService.employeeBranch.findFirst({
+            where: {
+                userId,
+            },
+            include: {
+                branch: true,
+            },
+        });
+
+        if (!userBranch) {
+            throw new NotFoundException(
+                `User with ID ${userId} does not have a branch`,
+            );
+        }
+
+        const shipment = await this.prismaService.shipment.findUnique({
+            where: {
+                trackingNumber: scanData.tracking_number,
+            },
+            include: {
+                shipmentDetail: true,
+                shipmentHistories: {
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                    take: 1,
+                },
+            },
+        });
+
+        if (!shipment) {
+            throw new NotFoundException(
+                `Shipment with tracking number ${scanData.tracking_number} not found`,
+            );
+        }
+
+        await this.validateScanType(
+            shipment,
+            scanData.type,
+            userBranch.branchId,
+        );
+
+        const newStatus = this.determineNewStatus(
+            scanData.type,
+            scanData.is_ready_to_pickup,
+        );
+
+        return this.prismaService.$transaction(async (tx) => {
+            const branchLog = await tx.shipmentBranchLog.create({
+                data: {
+                    shipmentId: shipment.id,
+                    branchId: userBranch.branchId,
+                    type: scanData.type,
+                    description: this.getDefaultDescription(
+                        scanData.type,
+                        userBranch.branch.name,
+                    ),
+                    status: newStatus,
+                    scannedByUserId: userId,
+                    trackingNumber: shipment.trackingNumber!,
+                },
+                include: {
+                    shipment: {
+                        include: {
+                            shipmentDetail: true,
+                        },
+                    },
+                    branch: true,
+                    scannedByUser: true,
+                },
+            });
+
+            await tx.shipment.update({
+                where: {
+                    id: shipment.id,
+                },
+                data: {
+                    deliveryStatus: newStatus,
+                },
+            });
+
+            await tx.shipmentHistory.create({
+                data: {
+                    shipmentId: shipment.id,
+                    status: newStatus,
+                    description: this.getDefaultDescription(
+                        scanData.type,
+                        userBranch.branch.name,
+                    ),
+                    userId: userId,
+                    branchId: userBranch.branchId,
+                },
+            });
+
+            return branchLog;
+        });
+    }
+
     private async validateScanType(
         shipment: Shipment,
         scanType: 'IN' | 'OUT',
@@ -90,7 +193,7 @@ export class ShipmentBranchService {
                     where: {
                         shipmentId: shipment.id,
                         branchId,
-                        scanType: 'IN',
+                        type: 'IN',
                     },
                     orderBy: {
                         createdAt: 'desc',
