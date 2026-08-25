@@ -12,6 +12,8 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { XenditWebhookGuard } from './webhook/xendit-webhook.guard';
 import { ShipmentsCourierController } from './courier/courier.controller';
 import { ShipmentCourierService } from './courier/courier.service';
+import { ShipmentBranchController } from './branch/shipment-branch.controller';
+import { ShipmentBranchService } from './branch/shipment-branch.service';
 
 @Module({
     // PermissionsModule wajib di-import karena PermissionGuard (sekarang
@@ -24,6 +26,7 @@ import { ShipmentCourierService } from './courier/courier.service';
         ShipmentsController,
         ShipmentWebhookController,
         ShipmentsCourierController,
+        ShipmentBranchController,
     ],
     providers: [
         ShipmentsService,
@@ -33,6 +36,7 @@ import { ShipmentCourierService } from './courier/courier.service';
         PdfService,
         XenditWebhookGuard,
         ShipmentCourierService,
+        ShipmentBranchService,
     ],
 })
 export class ShipmentsModule {}
