@@ -14,6 +14,13 @@ async function bootstrap() {
 
     app.useStaticAssets('public');
 
+    app.enableCors({
+        origin: process.env.CORS_ORIGIN || '*',
+        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+        allowedHeaders: 'Content-Type, Authorization',
+        credentials: true,
+    });
+
     // ConfigService<Env, true> = strict mode, Typescript akan tahu persis
     // key apa saja yg valid dan tipe datanya
     const configService = app.get<ConfigService<Env, true>>(ConfigService);
