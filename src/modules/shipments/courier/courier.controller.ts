@@ -100,4 +100,68 @@ export class ShipmentsCourierController {
             ),
         };
     }
+
+    @Get('pick-shipment-from-branch/:trackingNumber')
+    @RequirePermission('delivery.update')
+    async pickShipmentFromBranch(
+        @Param('trackingNumber') trackingNumber: string,
+        @CurrentUser() user: AuthenticatedUser,
+    ): Promise<BaseResponse<Shipment>> {
+        return {
+            message: `Shipment with tracking number ${trackingNumber} picked from branch successfully`,
+            data: await this.shipmentsService.pickShipmentFromBranch(
+                trackingNumber,
+                user.id,
+            ),
+        };
+    }
+
+    @Get('pickup-shipment-from-branch/:trackingNumber')
+    @RequirePermission('delivery.update')
+    async pickupShipmentFromBranch(
+        @Param('trackingNumber') trackingNumber: string,
+        @CurrentUser() user: AuthenticatedUser,
+    ): Promise<BaseResponse<Shipment>> {
+        return {
+            message: `Shipment with tracking number ${trackingNumber} ready to pick up from branch successfully`,
+            data: await this.shipmentsService.pickupShipmentFromBranch(
+                trackingNumber,
+                user.id,
+            ),
+        };
+    }
+
+    @Post('deliver-to-customer/:trackingNumber')
+    @RequirePermission('delivery.update')
+    @UseInterceptors(
+        FileInterceptor('photo', {
+            storage: memoryStorage(),
+            limits: { fileSize: MAX_COURIER_PHOTO_SIZE_BYTES },
+            fileFilter: (req, file, cb) => {
+                if (!ALLOWED_COURIER_PHOTO_MIME_TYPES.includes(file.mimetype)) {
+                    return cb(
+                        new UnsupportedMediaTypeException(
+                            `Only image files are allowed (${ALLOWED_COURIER_PHOTO_MIME_TYPES.join(', ')})`,
+                        ),
+                        false,
+                    );
+                }
+                cb(null, true);
+            },
+        }),
+    )
+    async deliverToCustomer(
+        @Param('trackingNumber') trackingNumber: string,
+        @CurrentUser() user: AuthenticatedUser,
+        @UploadedFile() photo: Express.Multer.File | undefined,
+    ): Promise<BaseResponse<Shipment>> {
+        return {
+            message: `Shipment with tracking number ${trackingNumber} is on the way to customer from branch successfully`,
+            data: await this.shipmentsService.deliverToCustomer(
+                trackingNumber,
+                user.id,
+                photo!,
+            ),
+        };
+    }
 }

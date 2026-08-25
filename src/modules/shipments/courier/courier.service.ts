@@ -232,4 +232,185 @@ export class ShipmentCourierService {
             return updatedShipment;
         });
     }
+
+    async pickShipmentFromBranch(
+        trackingNumber: string,
+        userId: number,
+    ): Promise<Shipment> {
+        const shipment = await this.prismaService.shipment.findUnique({
+            where: {
+                trackingNumber,
+            },
+            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
+        });
+
+        if (!shipment) {
+            throw new NotFoundException(
+                `Shipment with tracking number ${trackingNumber} not found`,
+            );
+        }
+
+        const userBranch = await this.prismaService.employeeBranch.findFirst({
+            where: {
+                userId,
+            },
+            select: {
+                branchId: true,
+            },
+        });
+
+        if (!userBranch) {
+            throw new NotFoundException(
+                `User with ID ${userId} does not have a branch`,
+            );
+        }
+
+        return await this.prismaService.$transaction(async (tx) => {
+            const updatedShipment = await tx.shipment.update({
+                where: {
+                    id: shipment.id,
+                },
+                data: {
+                    deliveryStatus: ShipmentStatus.READY_TO_DELIVER,
+                },
+            });
+
+            await tx.shipmentHistory.create({
+                data: {
+                    shipmentId: updatedShipment.id,
+                    userId,
+                    status: ShipmentStatus.READY_TO_DELIVER,
+                    description: `Shipment with tracking number ${trackingNumber} is pick from branch by user with ID ${userId}`,
+                },
+            });
+
+            return updatedShipment;
+        });
+    }
+
+    async pickupShipmentFromBranch(
+        trackingNumber: string,
+        userId: number,
+    ): Promise<Shipment> {
+        const shipment = await this.prismaService.shipment.findUnique({
+            where: {
+                trackingNumber,
+            },
+            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
+        });
+
+        if (!shipment) {
+            throw new NotFoundException(
+                `Shipment with tracking number ${trackingNumber} not found`,
+            );
+        }
+
+        const userBranch = await this.prismaService.employeeBranch.findFirst({
+            where: {
+                userId,
+            },
+            select: {
+                branchId: true,
+            },
+        });
+
+        if (!userBranch) {
+            throw new NotFoundException(
+                `User with ID ${userId} does not have a branch`,
+            );
+        }
+
+        return await this.prismaService.$transaction(async (tx) => {
+            const updatedShipment = await tx.shipment.update({
+                where: {
+                    id: shipment.id,
+                },
+                data: {
+                    deliveryStatus: ShipmentStatus.ON_THE_WAY_TO_ADDRESS,
+                },
+            });
+
+            await tx.shipmentHistory.create({
+                data: {
+                    shipmentId: updatedShipment.id,
+                    userId,
+                    status: ShipmentStatus.ON_THE_WAY_TO_ADDRESS,
+                    description: `Shipment with tracking number ${trackingNumber} is pickup from branch by user with ID ${userId}`,
+                },
+            });
+
+            return updatedShipment;
+        });
+    }
+
+    async deliverToCustomer(
+        trackingNumber: string,
+        userId: number,
+        photo: Express.Multer.File,
+    ): Promise<Shipment> {
+        if (!photo) {
+            throw new BadRequestException(`Photo is required`);
+        }
+
+        const shipment = await this.prismaService.shipment.findUnique({
+            where: {
+                trackingNumber,
+            },
+            include: SHIPMENT_WITH_RELATIONS_INCLUDE,
+        });
+
+        if (!shipment) {
+            throw new NotFoundException(
+                `Shipment with tracking number ${trackingNumber} not found`,
+            );
+        }
+
+        const userBranch = await this.prismaService.employeeBranch.findFirst({
+            where: {
+                userId,
+            },
+            select: {
+                branchId: true,
+            },
+        });
+
+        if (!userBranch) {
+            throw new NotFoundException(
+                `User with ID ${userId} does not have a branch`,
+            );
+        }
+
+        const photoSaved = await this.savePhotoFile(photo);
+
+        return await this.prismaService.$transaction(async (tx) => {
+            const updatedShipment = await tx.shipment.update({
+                where: {
+                    id: shipment.id,
+                },
+                data: {
+                    deliveryStatus: ShipmentStatus.DELIVERED,
+                },
+            });
+
+            await tx.shipmentHistory.create({
+                data: {
+                    shipmentId: updatedShipment.id,
+                    userId,
+                    status: ShipmentStatus.DELIVERED,
+                    description: `Shipment with tracking number ${trackingNumber} is delivered to customer by user with ID ${userId}`,
+                },
+            });
+
+            await tx.shipmentDetail.update({
+                where: {
+                    id: updatedShipment.id,
+                },
+                data: {
+                    receiptProof: photoSaved,
+                },
+            });
+
+            return updatedShipment;
+        });
+    }
 }
