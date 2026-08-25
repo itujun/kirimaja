@@ -4,144 +4,142 @@
         <meta name='viewport' content='width=device-width, initial-scale=1.0' />
         <title>Payment Required</title>
     </head>
-    <body>
-        <div
-            style='
-				font-family: Arial, sans-serif;
-				max-width: 600px;
-				margin: 0 auto;
-				padding: 20px;
-			'
-        >
-            <div style='text-align: center; margin-bottom: 30px'>
-                <h1 style='color: #333; margin: 0'>Kirim Aja</h1>
-                <p style='color: #666; margin: 5px 0'>
-                    Reliable Shipping Service
-                </p>
-            </div>
+    <body style='margin:0; padding:0; background-color:#f4f4f5;'>
+        <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background-color:#f4f4f5;'>
+            <tr>
+                <td align='center' style='padding:24px 16px;'>
+                    <table role='presentation' width='600' cellpadding='0' cellspacing='0' style='max-width:600px; width:100%; background-color:#ffffff;'>
 
-            <h2 style='color: #333'>Payment Required</h2>
-            <p>Dear Customer,</p>
-            <p>
-                Thank you for using our shipping service. A payment is required
-                for your shipment.
-            </p>
+                        <!-- Brand header -->
+                        <tr>
+                            <td align='center' style='padding:0 20px 30px;'>
+                                <h1 style='margin:0; color:#333333; font-family:Arial, sans-serif; font-size:24px;'>Kirim Aja</h1>
+                                <p style='margin:5px 0 0; color:#666666; font-family:Arial, sans-serif; font-size:14px;'>Reliable Shipping Service</p>
+                            </td>
+                        </tr>
 
-            <div
-                style='
-					background-color: #f5f5f5;
-					padding: 20px;
-					border-radius: 8px;
-					margin: 20px 0;
-					border-left: 4px solid #007bff;
-				'
-            >
-                <h3 style='margin: 0 0 15px 0; color: #333'>
-                    Shipment Details:
-                </h3>
-                <table style='width: 100%; border-collapse: collapse'>
-                    <tr>
-                        <td style='padding: 5px 0; color: #666'>
-                            <strong>Shipment ID:</strong>
-                        </td>
-                        <td
-                            style='padding: 5px 0; color: #333'
-                        >#{{shipmentId}}</td>
-                    </tr>
-                    <tr>
-                        <td style='padding: 5px 0; color: #666'>
-                            <strong>Amount:</strong>
-                        </td>
-                        <td style='padding: 5px 0; color: #333'>Rp
-                            {{amount}}</td>
-                    </tr>
-                    <tr>
-                        <td style='padding: 5px 0; color: #666'>
-                            <strong>Payment Due Date:</strong>
-                        </td>
-                        <td style='padding: 5px 0; color: #333'>
-                            {{expiryDate}}
-                        </td>
-                    </tr>
-                </table>
-            </div>
+                        <!-- Title + intro -->
+                        <tr>
+                            <td style='padding:0 20px 20px; font-family:Arial, sans-serif;'>
+                                <h2 style='margin:0 0 16px; color:#333333; font-size:20px;'>Payment Required</h2>
+                                <p style='margin:0 0 16px; font-size:14px; color:#333333; line-height:1.6;'>Dear Customer,</p>
+                                <p style='margin:0; font-size:14px; color:#333333; line-height:1.6;'>Thank you for using our shipping service. A payment is required for your shipment.</p>
+                            </td>
+                        </tr>
 
-            <p>Please click the button below to complete your payment:</p>
+                        <!-- Shipment details box -->
+                        <tr>
+                            <td style='padding:0 20px 20px;'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background-color:#f5f5f5; border-left:4px solid #007bff;'>
+                                    <tr>
+                                        <td style='padding:20px; font-family:Arial, sans-serif;'>
+                                            <h3 style='margin:0 0 15px; color:#333333; font-size:16px;'>Shipment Details:</h3>
+                                            <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px;'>
+                                                <tr>
+                                                    <td style='padding:5px 0; color:#666666;'><strong>Shipment ID:</strong></td>
+                                                    <td style='padding:5px 0; color:#333333;'>#{{shipmentId}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding:5px 0; color:#666666;'><strong>Amount:</strong></td>
+                                                    <td style='padding:5px 0; color:#333333;'>Rp {{amount}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding:5px 0; color:#666666;'><strong>Payment Due Date:</strong></td>
+                                                    <td style='padding:5px 0; color:#333333;'>{{expiryDate}}</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-            <div style='text-align: center; margin: 30px 0'>
-                <a
-                    href='{{paymentUrl}}'
-                    style='
-						background-color: #007bff;
-						color: white;
-						padding: 15px 30px;
-						text-decoration: none;
-						border-radius: 8px;
-						display: inline-block;
-						font-weight: bold;
-						box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
-					'
-                >
-                    Pay Now
-                </a>
-            </div>
+                        <!-- Instruction -->
+                        <tr>
+                            <td style='padding:0 20px 10px; font-family:Arial, sans-serif; font-size:14px; color:#333333;'>
+                                <p style='margin:0;'>Please click the button below to complete your payment:</p>
+                            </td>
+                        </tr>
 
-            <div
-                style='
-					background-color: #f8f9fa;
-					padding: 15px;
-					border-radius: 8px;
-					margin: 20px 0;
-				'
-            >
-                <p style='color: #666; font-size: 14px; margin: 0'>
-                    <strong>Alternative:</strong>
-                    If the button doesn't work, copy and paste this link into
-                    your browser:
-                </p>
-                <p style='margin: 10px 0 0 0'>
-                    <a
-                        href='{{paymentUrl}}'
-                        style='color: #007bff; word-break: break-all'
-                    >{{paymentUrl}}</a>
-                </p>
-            </div>
+                        <!-- CTA button (bulletproof pattern) -->
+                        <tr>
+                            <td align='center' style='padding:10px 20px 30px;'>
+                                <table role='presentation' cellpadding='0' cellspacing='0'>
+                                    <tr>
+                                        <td style='border-radius:8px; background-color:#007bff;'>
+                                            <a href='{{paymentUrl}}' style='display:inline-block; padding:15px 30px; font-family:Arial, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none;'>Pay Now</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-            <hr
-                style='border: none; border-top: 1px solid #eee; margin: 30px 0'
-            />
+                        <!-- Alternative link box -->
+                        <tr>
+                            <td style='padding:0 20px 20px;'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background-color:#f8f9fa;'>
+                                    <tr>
+                                        <td style='padding:15px; font-family:Arial, sans-serif;'>
+                                            <p style='margin:0; color:#666666; font-size:14px;'>
+                                                <strong>Alternative:</strong> If the button doesn't work, copy and paste this link into your browser:
+                                            </p>
+                                            <p style='margin:10px 0 0;'>
+                                                <a href='{{paymentUrl}}' style='color:#007bff; font-size:14px; word-break:break-all;'>{{paymentUrl}}</a>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-            <p style='color: #666'>
-                If you have any questions, please don't hesitate to contact our
-                customer support.
-            </p>
+                        <!-- Divider -->
+                        <tr>
+                            <td style='padding:0 20px;'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0'>
+                                    <tr>
+                                        <td style='border-top:1px solid #eeeeee; font-size:0; line-height:0;'>&nbsp;</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-            <div
-                style='
-					margin-top: 30px;
-					padding-top: 20px;
-					border-top: 1px solid #eee;
-				'
-            >
-                <p style='margin: 0; color: #333'>Best regards,</p>
-                <p style='margin: 5px 0 0 0; color: #007bff; font-weight: bold'>
-                    Kirim Aja Team
-                </p>
-            </div>
+                        <!-- Contact note -->
+                        <tr>
+                            <td style='padding:20px 20px 0; font-family:Arial, sans-serif; font-size:14px; color:#666666;'>
+                                <p style='margin:0;'>If you have any questions, please don't hesitate to contact our customer support.</p>
+                            </td>
+                        </tr>
 
-            <div
-                style='
-					text-align: center;
-					margin-top: 30px;
-					padding-top: 20px;
-					border-top: 1px solid #eee;
-				'
-            >
-                <p style='color: #999; font-size: 12px; margin: 0'>
-                    This is an automated message. Please do not reply to this
-                    email.
-                </p>
-            </div>
-        </div>
+                        <!-- Signature -->
+                        <tr>
+                            <td style='padding:20px 20px 0;'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0'>
+                                    <tr>
+                                        <td style='border-top:1px solid #eeeeee; padding-top:20px; font-family:Arial, sans-serif; font-size:14px;'>
+                                            <p style='margin:0; color:#333333;'>Best regards,</p>
+                                            <p style='margin:5px 0 0; color:#007bff; font-weight:bold;'>Kirim Aja Team</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Automated disclaimer -->
+                        <tr>
+                            <td style='padding:20px;' align='center'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0'>
+                                    <tr>
+                                        <td style='border-top:1px solid #eeeeee; padding-top:20px; text-align:center; font-family:Arial, sans-serif;'>
+                                            <p style='margin:0; color:#999999; font-size:12px;'>This is an automated message. Please do not reply to this email.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
     </body>
 </html>

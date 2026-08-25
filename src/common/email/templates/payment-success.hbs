@@ -4,173 +4,156 @@
         <meta name='viewport' content='width=device-width, initial-scale=1.0' />
         <title>Payment Successful</title>
     </head>
-    <body>
-        <div
-            style='
-				font-family: Arial, sans-serif;
-				max-width: 600px;
-				margin: 0 auto;
-				padding: 20px;
-			'
-        >
-            <div style='text-align: center; margin-bottom: 30px'>
-                <h1 style='color: #333; margin: 0'>Kirim Aja</h1>
-                <p style='color: #666; margin: 5px 0'>
-                    Reliable Shipping Service
-                </p>
-            </div>
+    <body style='margin:0; padding:0; background-color:#f4f4f5;'>
+        <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background-color:#f4f4f5;'>
+            <tr>
+                <td align='center' style='padding:24px 16px;'>
+                    <table role='presentation' width='600' cellpadding='0' cellspacing='0' style='max-width:600px; width:100%; background-color:#ffffff;'>
 
-            <div style='text-align: center; margin-bottom: 20px'>
-                <div
-                    style='
-						width: 60px;
-						height: 60px;
-						background-color: #28a745;
-						border-radius: 50%;
-						margin: 0 auto 15px;
-						display: flex;
-						align-items: center;
-						justify-content: center;
-					'
-                >
-                    <span style='color: white; font-size: 30px'>✓</span>
-                </div>
-                <h2 style='color: #28a745; margin: 0'>Payment Successful!</h2>
-            </div>
+                        <!-- Brand header -->
+                        <tr>
+                            <td align='center' style='padding:0 20px 30px;'>
+                                <h1 style='margin:0; color:#333333; font-family:Arial, sans-serif; font-size:24px;'>Kirim Aja</h1>
+                                <p style='margin:5px 0 0; color:#666666; font-family:Arial, sans-serif; font-size:14px;'>Reliable Shipping Service</p>
+                            </td>
+                        </tr>
 
-            <p>Dear Customer,</p>
-            <p>
-                Great news! Your payment has been successfully processed and
-                your shipment is now being prepared.
-            </p>
+                        <!-- Status icon + title -->
+                        <tr>
+                            <td align='center' style='padding:0 20px 20px;'>
+                                <table role='presentation' width='60' cellpadding='0' cellspacing='0' align='center'>
+                                    <tr>
+                                        <td width='60' height='60' align='center' valign='middle' style='background-color:#28a745; border-radius:50%; font-family:Arial, sans-serif; font-size:30px; color:#ffffff;'>&#10003;</td>
+                                    </tr>
+                                </table>
+                                <h2 style='margin:15px 0 0; color:#28a745; font-family:Arial, sans-serif; font-size:20px;'>Payment Successful!</h2>
+                            </td>
+                        </tr>
 
-            <div
-                style='
-					background-color: #d4edda;
-					padding: 20px;
-					border-radius: 8px;
-					margin: 20px 0;
-					border-left: 4px solid #28a745;
-				'
-            >
-                <h3 style='margin: 0 0 15px 0; color: #155724'>
-                    Payment Details:
-                </h3>
-                <table style='width: 100%; border-collapse: collapse'>
-                    <tr>
-                        <td style='padding: 5px 0; color: #155724'>
-                            <strong>Shipment ID:</strong>
-                        </td>
-                        <td style='padding: 5px 0; color: #155724'>
-                            #{{shipmentId}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style='padding: 5px 0; color: #155724'>
-                            <strong>Amount Paid:</strong>
-                        </td>
-                        <td style='padding: 5px 0; color: #155724'>
-                            Rp
-                            {{amount}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style='padding: 5px 0; color: #155724'>
-                            <strong>Tracking Number:</strong>
-                        </td>
-                        <td
-                            style='
-								padding: 5px 0;
-								color: #155724;
-								font-weight: bold;
-							'
-                        >
-                            {{trackingNumber}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style='padding: 5px 0; color: #155724'>
-                            <strong>Payment Date:</strong>
-                        </td>
-                        <td style='padding: 5px 0; color: #155724'>
-                            {{paymentDate}}
-                        </td>
-                    </tr>
-                </table>
-            </div>
+                        <!-- Body text -->
+                        <tr>
+                            <td style='padding:0 20px 20px; font-family:Arial, sans-serif; font-size:14px; color:#333333; line-height:1.6;'>
+                                <p style='margin:0 0 16px;'>Dear Customer,</p>
+                                <p style='margin:0;'>Great news! Your payment has been successfully processed and your shipment is now being prepared.</p>
+                            </td>
+                        </tr>
 
-            <div
-                style='
-					background-color: #cce5ff;
-					padding: 20px;
-					border-radius: 8px;
-					margin: 20px 0;
-					border-left: 4px solid #007bff;
-				'
-            >
-                <h4 style='margin: 0 0 10px 0; color: #0056b3'>
-                    What happens next?
-                </h4>
-                <ul style='margin: 0; padding-left: 20px; color: #0056b3'>
-                    <li>Your shipment will be picked up within 24 hours</li>
-                    <li>
-                        You'll receive SMS and email updates on delivery status
-                    </li>
-                    <li>Track your package using the tracking number above</li>
-                </ul>
-            </div>
+                        <!-- Payment details box -->
+                        <tr>
+                            <td style='padding:0 20px 20px;'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background-color:#d4edda; border-left:4px solid #28a745;'>
+                                    <tr>
+                                        <td style='padding:20px; font-family:Arial, sans-serif;'>
+                                            <h3 style='margin:0 0 15px; color:#155724; font-size:16px;'>Payment Details:</h3>
+                                            <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px; color:#155724;'>
+                                                <tr>
+                                                    <td style='padding:5px 0;'><strong>Shipment ID:</strong></td>
+                                                    <td style='padding:5px 0;'>#{{shipmentId}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding:5px 0;'><strong>Amount Paid:</strong></td>
+                                                    <td style='padding:5px 0;'>Rp {{amount}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding:5px 0;'><strong>Tracking Number:</strong></td>
+                                                    <td style='padding:5px 0; font-weight:bold;'>{{trackingNumber}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding:5px 0;'><strong>Payment Date:</strong></td>
+                                                    <td style='padding:5px 0;'>{{paymentDate}}</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-            <div style='text-align: center; margin: 25px 0'>
-                <a
-                    href='#'
-                    style='
-						background-color: #17a2b8;
-						color: white;
-						padding: 12px 25px;
-						text-decoration: none;
-						border-radius: 8px;
-						display: inline-block;
-						font-weight: bold;
-					'
-                >
-                    Track Your Shipment
-                </a>
-            </div>
+                        <!-- What happens next box -->
+                        <tr>
+                            <td style='padding:0 20px 20px;'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background-color:#cce5ff; border-left:4px solid #007bff;'>
+                                    <tr>
+                                        <td style='padding:20px; font-family:Arial, sans-serif;'>
+                                            <h4 style='margin:0 0 10px; color:#0056b3; font-size:15px;'>What happens next?</h4>
+                                            <table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='font-size:14px; color:#0056b3;'>
+                                                <tr>
+                                                    <td style='padding:2px 0 2px 18px;'>&bull;&nbsp; Your shipment will be picked up within 24 hours</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding:2px 0 2px 18px;'>&bull;&nbsp; You'll receive SMS and email updates on delivery status</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style='padding:2px 0 2px 18px;'>&bull;&nbsp; Track your package using the tracking number above</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-            <hr
-                style='border: none; border-top: 1px solid #eee; margin: 30px 0'
-            />
+                        <!-- CTA button (bulletproof pattern) -->
+                        <tr>
+                            <td align='center' style='padding:10px 20px 30px;'>
+                                <table role='presentation' cellpadding='0' cellspacing='0'>
+                                    <tr>
+                                        <td style='border-radius:8px; background-color:#17a2b8;'>
+                                            <a href='#' style='display:inline-block; padding:12px 25px; font-family:Arial, sans-serif; font-size:14px; font-weight:bold; color:#ffffff; text-decoration:none;'>Track Your Shipment</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-            <p style='color: #666'>
-                Thank you for choosing our service! We appreciate your business.
-            </p>
+                        <!-- Divider -->
+                        <tr>
+                            <td style='padding:0 20px;'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0'>
+                                    <tr>
+                                        <td style='border-top:1px solid #eeeeee; font-size:0; line-height:0;'>&nbsp;</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-            <div
-                style='
-					margin-top: 30px;
-					padding-top: 20px;
-					border-top: 1px solid #eee;
-				'
-            >
-                <p style='margin: 0; color: #333'>Best regards,</p>
-                <p style='margin: 5px 0 0 0; color: #007bff; font-weight: bold'>
-                    Kirim Aja Team
-                </p>
-            </div>
+                        <!-- Thank you -->
+                        <tr>
+                            <td style='padding:20px 20px 0; font-family:Arial, sans-serif; font-size:14px; color:#666666;'>
+                                <p style='margin:0;'>Thank you for choosing our service! We appreciate your business.</p>
+                            </td>
+                        </tr>
 
-            <div
-                style='
-					text-align: center;
-					margin-top: 30px;
-					padding-top: 20px;
-					border-top: 1px solid #eee;
-				'
-            >
-                <p style='color: #999; font-size: 12px; margin: 0'>
-                    This is an automated message. Please do not reply to this
-                    email.
-                </p>
-            </div>
-        </div>
+                        <!-- Signature -->
+                        <tr>
+                            <td style='padding:20px 20px 0;'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0'>
+                                    <tr>
+                                        <td style='border-top:1px solid #eeeeee; padding-top:20px; font-family:Arial, sans-serif; font-size:14px;'>
+                                            <p style='margin:0; color:#333333;'>Best regards,</p>
+                                            <p style='margin:5px 0 0; color:#007bff; font-weight:bold;'>Kirim Aja Team</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Automated disclaimer -->
+                        <tr>
+                            <td style='padding:20px;' align='center'>
+                                <table role='presentation' width='100%' cellpadding='0' cellspacing='0'>
+                                    <tr>
+                                        <td style='border-top:1px solid #eeeeee; padding-top:20px; text-align:center; font-family:Arial, sans-serif;'>
+                                            <p style='margin:0; color:#999999; font-size:12px;'>This is an automated message. Please do not reply to this email.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
     </body>
 </html>
