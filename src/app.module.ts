@@ -1,4 +1,9 @@
-import { Module } from '@nestjs/common';
+import {
+    MiddlewareConsumer,
+    Module,
+    NestModule,
+    RequestMethod,
+} from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -14,12 +19,13 @@ import { EmailService } from './common/email/email.service';
 import { QueueModule } from './common/queue/queue.module';
 import { ShipmentsModule } from './modules/shipments/shipments.module';
 import { HistoryModule } from './modules/history/history.module';
+import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 
 @Module({
     imports: [
         ConfigModule.forRoot({
-            isGlobal: true, // supaya configService bisa dipakai di semua module tanpa import ulang
-            validate: validateEnv, // dijalankan otomatis saat app start
+            isGlobal: true,
+            validate: validateEnv,
         }),
         AuthModule,
         RolesModule,
@@ -35,4 +41,23 @@ import { HistoryModule } from './modules/history/history.module';
     controllers: [AppController],
     providers: [AppService, EmailService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+    configure(consumer: MiddlewareConsumer): void {
+        consumer
+            .apply(CsrfMiddleware)
+            .exclude(
+                // Belum ada sesi/cookie sama sekali di titik ini, jadi tidak
+                // ada apapun yang bisa dicocokkan -- middleware toh akan
+                // lolos otomatis, tapi exclude eksplisit di sini biar
+                // maksudnya jelas dibaca orang lain (atau kamu sendiri,
+                // 6 bulan lagi).
+                { path: 'auth/login', method: RequestMethod.POST },
+                { path: 'auth/register', method: RequestMethod.POST },
+                // Xendit yang panggil endpoint ini server-to-server, tidak
+                // pernah bawa cookie browser sama sekali -- proteksinya
+                // sudah XenditWebhookGuard (signature-based), bukan cookie.
+                { path: 'shipments/webhook/(.*)', method: RequestMethod.ALL },
+            )
+            .forRoutes('*');
+    }
+}

@@ -17,6 +17,7 @@ export const envSchema = z.object({
         .string({ required_error: 'JWT_SECRET_KEY wajib diisi di .env' })
         .min(16, 'JWT_SECRET_KEY minimal 16 karakter demi keamanan'),
     JWT_EXPIRES_IN: z.coerce.number().int().positive().default(86400), // 1 day
+    JWT_REFRESH_EXPIRES_IN: z.coerce.number().int().positive().default(2592000), // 30 days
 
     // OpenCageData
     OPENCAGE_API_KEY: z
