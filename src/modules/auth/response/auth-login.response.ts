@@ -77,6 +77,13 @@ export class AuthLoginResponse {
     @Expose()
     accessToken: string;
 
+    // BARU: dipakai internal oleh AuthController untuk di-set sebagai
+    // cookie httpOnly, TIDAK PERNAH dikembalikan di body JSON (controller
+    // hanya mengambil field ini lalu membuang sisanya sebelum response
+    // dikirim ke client).
+    @Expose()
+    refreshToken: string;
+
     @Expose()
     @Type(() => UserResponse)
     user: UserResponse;

@@ -32,6 +32,7 @@ model User {
   shipmentDetails     ShipmentDetail[]
   shipmentHistories   ShipmentHistory[]
   scannedShipmentLogs ShipmentBranchLog[]
+  refreshTokens       RefreshToken[]
 
   @@map("users")
 }
@@ -222,4 +223,24 @@ model ShipmentBranchLog {
   scannedByUser User     @relation(fields: [scannedByUserId], references: [id], onDelete: Restrict)
 
   @@map("shipment_branch_log")
+}
+
+model RefreshToken {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  // Yang disimpan HASH-nya, bukan token asli -- kalau database ini
+  // suatu saat bocor, attacker tetap tidak bisa memakai isi tabel ini
+  // langsung sebagai refresh token yang valid (sama seperti kenapa kita
+  // simpan hash password, bukan password mentah).
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  // Menunjuk ke token PENGGANTINYA (bukan ke token sebelumnya) -- dipakai
+  // untuk menelusuri rantai rotasi kalau perlu audit/investigasi.
+  replacedById Int?      @map("replaced_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }

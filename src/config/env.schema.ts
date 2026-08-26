@@ -17,6 +17,10 @@ export const envSchema = z.object({
         .string({ required_error: 'JWT_SECRET_KEY wajib diisi di .env' })
         .min(16, 'JWT_SECRET_KEY minimal 16 karakter demi keamanan'),
     JWT_EXPIRES_IN: z.coerce.number().int().positive().default(86400), // 1 day
+    // BARU: sarannya ubah JWT_EXPIRES_IN di .env-mu jadi lebih pendek
+    // (misal 900 = 15 menit) sekarang refresh token sudah ada -- access
+    // token yang pendek + refresh token yang bisa dicabut adalah
+    // kombinasi yang jauh lebih aman daripada access token panjang sendirian.
     JWT_REFRESH_EXPIRES_IN: z.coerce.number().int().positive().default(2592000), // 30 days
 
     // OpenCageData
