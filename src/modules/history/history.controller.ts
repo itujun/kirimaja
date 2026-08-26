@@ -20,15 +20,12 @@ import { UserRole } from 'src/common/enum/user-role.enum';
 export class HistoryController {
     constructor(private readonly historyService: HistoryService) {}
 
-    // Sama seperti canViewAllShipments di shipments.controller.ts -- kalau
-    // nanti dipakai di modul ketiga, worth diekstrak jadi shared helper/
-    // decorator, tapi untuk sekarang disalin persis supaya konsisten.
     private canViewAllShipments(user: AuthenticatedUser): boolean {
         return user.role.id === UserRole.SUPER_ADMIN;
     }
 
     @Get()
-    @RequirePermission('shipments.read')
+    @RequirePermission('history.read')
     async findAll(
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<BaseResponse<Shipment[]>> {
@@ -41,14 +38,8 @@ export class HistoryController {
         };
     }
 
-    // FIX: sebelumnya endpoint ini TIDAK punya @RequirePermission, dan
-    // service-nya (findOne) tidak menerima konteks user sama sekali --
-    // artinya siapapun yang login bisa baca detail shipment (termasuk data
-    // pribadi customer lain) milik siapapun cuma dengan menebak ID. Sekarang
-    // permission + kepemilikan divalidasi, pola sama seperti
-    // shipments.controller.ts / shipments.service.ts.
     @Get(':id')
-    @RequirePermission('shipments.read')
+    @RequirePermission('history.read')
     async findOne(
         @Param('id', ParseIntPipe) id: number,
         @CurrentUser() user: AuthenticatedUser,
