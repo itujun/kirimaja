@@ -48,6 +48,7 @@ export class ShipmentsController {
     }
 
     @Get()
+    @RequirePermission('shipments.read')
     async findAll(
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<BaseResponse<ShipmentWithRelations[]>> {
@@ -61,6 +62,7 @@ export class ShipmentsController {
     }
 
     @Get(':id')
+    @RequirePermission('shipments.read')
     async findOne(
         @Param('id', ParseIntPipe) id: number,
         @CurrentUser() user: AuthenticatedUser,
@@ -76,6 +78,7 @@ export class ShipmentsController {
     }
 
     @Get(':id/pdf')
+    @RequirePermission('shipments.read')
     async generateShipmentPdf(
         @Param('id', ParseIntPipe) id: number,
         @CurrentUser() user: AuthenticatedUser,
