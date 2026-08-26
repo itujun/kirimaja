@@ -2,10 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Request } from 'express';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { Env } from 'src/config/env.schema';
 import { RoleResponse } from '../response/auth-login.response';
 import { ROLE_WITH_PERMISSIONS_INCLUDE } from 'src/common/prisma/prisma-includes';
+import { ACCESS_TOKEN_COOKIE_NAME } from '../constants/auth-cookie.constant';
 
 export interface JwtPayload {
     sub: number;
@@ -14,15 +16,19 @@ export interface JwtPayload {
     roleId: number;
 }
 
-// Bentuk PASTI dari `request.user` setelah lolos JwtAuthGuard.
-// Ini "single source of truth" -- dipakai juga oleh @CurrentUser()
-// decorator supaya tidak ada lagi `req.user: any` yang tersebar
-// di controller-controller lain.
 export interface AuthenticatedUser {
     id: number;
     email: string;
     role: RoleResponse;
 }
+
+// Extractor kustom: sebelumnya token dibaca dari header
+// `Authorization: Bearer <token>` lewat ExtractJwt.fromAuthHeaderAsBearerToken().
+// Sekarang token ada di httpOnly cookie, jadi kita baca dari req.cookies
+// (hasil parsing cookie-parser di main.ts) alih-alih dari header.
+const extractFromCookie = (req: Request): string | null => {
+    return req?.cookies?.[ACCESS_TOKEN_COOKIE_NAME] ?? null;
+};
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -31,7 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         configService: ConfigService<Env, true>,
     ) {
         super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: ExtractJwt.fromExtractors([extractFromCookie]),
             secretOrKey: configService.get('JWT_SECRET_KEY', { infer: true }),
         });
     }
@@ -53,7 +59,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         return {
             id: user.id,
             email: user.email,
-            role: RoleResponse.fromEntity(user.role), // sekarang bentuknya SAMA dengan response login
+            role: RoleResponse.fromEntity(user.role),
         };
     }
 }

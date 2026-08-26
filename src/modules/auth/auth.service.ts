@@ -125,4 +125,33 @@ export class AuthService {
             { excludeExtraneousValues: true },
         );
     }
+
+    // Dipakai oleh GET /auth/me -- endpoint BARU untuk "siapa yang sedang
+    // login", dipanggil frontend setiap kali aplikasi di-load/refresh.
+    // Bentuk return-nya SENGAJA sama persis dengan `user` di response
+    // login/register, supaya frontend bisa pakai satu type yang sama
+    // (LoginResponse['user']) untuk kedua kasus.
+    async getCurrentUser(userId: number): Promise<UserResponse> {
+        const user = await this.prismaService.user.findUnique({
+            where: { id: userId },
+            include: {
+                role: {
+                    include: ROLE_WITH_PERMISSIONS_INCLUDE,
+                },
+            },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        return plainToInstance(
+            UserResponse,
+            {
+                ...user,
+                role: RoleResponse.fromEntity(user.role),
+            },
+            { excludeExtraneousValues: true },
+        );
+    }
 }

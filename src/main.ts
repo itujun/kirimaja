@@ -5,6 +5,7 @@ import { ResponseTransformInterceptor } from './common/interceptors/response.int
 import { ConfigService } from '@nestjs/config';
 import { Env } from './config/env.schema';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -14,29 +15,27 @@ async function bootstrap() {
 
     app.useStaticAssets('public');
 
-    // ConfigService<Env, true> = strict mode, Typescript akan tahu persis
-    // key apa saja yg valid dan tipe datanya
+    // WAJIB sebelum request masuk ke controller manapun -- middleware ini
+    // yang mem-parsing header `Cookie: access_token=xxx` dari request
+    // menjadi object `req.cookies`, yang nanti dibaca oleh JwtStrategy.
+    app.use(cookieParser());
+
     const configService = app.get<ConfigService<Env, true>>(ConfigService);
 
-    // FIX: sebelumnya origin memakai process.env.CORS_ORIGIN mentah --
-    // variabel ini TIDAK terdaftar di env.schema.ts (tidak tervalidasi
-    // Zod, tidak ada di .env.example), jadi selalu jatuh ke fallback '*'.
-    // Dikombinasikan dengan credentials: true, itu kontradiksi menurut
-    // spesifikasi CORS (browser akan menolak response yang butuh
-    // kredensial kalau origin-nya wildcard '*').
-    //
-    // Aplikasi ini murni pakai JWT Bearer token di header Authorization,
-    // tidak pernah pakai cookie di manapun -- jadi credentials: true
-    // sebenarnya tidak pernah benar-benar dibutuhkan. FRONTEND_URL juga
-    // sudah ada sebagai env variable yang required & tervalidasi (dipakai
-    // juga di shipments.service.ts untuk redirect Xendit), jadi dipakai
-    // ulang di sini sebagai satu-satunya sumber kebenaran "alamat
-    // frontend saya", bukan bikin variabel CORS_ORIGIN baru yang terpisah.
+    // UPDATE dari sesi sebelumnya: dulu credentials di-set `false` karena
+    // aplikasi murni pakai Bearer token di header (tidak butuh cookie).
+    // Sekarang auth token disimpan sebagai httpOnly cookie, jadi
+    // credentials WAJIB `true` -- ini yang mengizinkan browser
+    // menyertakan & menerima cookie pada request cross-origin (FE beda
+    // port dari BE). Tanpa ini, browser akan DIAM-DIAM tidak mengirim
+    // ataupun menyimpan cookie dari response, walau tidak ada error yang
+    // jelas di console -- salah satu bug paling membingungkan untuk
+    // di-debug kalau belum tahu penyebabnya.
     app.enableCors({
         origin: configService.get('FRONTEND_URL', { infer: true }),
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
         allowedHeaders: 'Content-Type, Authorization',
-        credentials: false,
+        credentials: true,
     });
 
     const port = configService.get('PORT', { infer: true });
