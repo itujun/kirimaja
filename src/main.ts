@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { Env } from './config/env.schema';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
+import { CSRF_HEADER_NAME } from './modules/auth/constants/csrf-cookie.constant';
 
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -34,7 +35,18 @@ async function bootstrap() {
     app.enableCors({
         origin: configService.get('FRONTEND_URL', { infer: true }),
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-        allowedHeaders: 'Content-Type, Authorization',
+        // TAMBAHAN: CSRF_HEADER_NAME ('x-xsrf-token') WAJIB ada di sini.
+        // Header ini bukan header "safelisted" bawaan browser, jadi
+        // request cross-origin yang membawanya otomatis jadi
+        // "preflighted request" (browser kirim OPTIONS dulu). Kalau
+        // header ini tidak di-whitelist di allowedHeaders, browser akan
+        // MENOLAK mengirim request aslinya sama sekali dan muncul
+        // sebagai "CORS error" di DevTools -- bukan 403 dari
+        // CsrfMiddleware, karena request-nya bahkan belum sempat sampai
+        // ke server. Import dari constant yang sama dipakai
+        // CsrfMiddleware, supaya nama header tidak pernah drift antara
+        // dua tempat ini.
+        allowedHeaders: `Content-Type, Authorization, ${CSRF_HEADER_NAME}`,
         credentials: true,
     });
 
