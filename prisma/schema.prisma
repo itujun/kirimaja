@@ -100,7 +100,14 @@ model EmployeeBranch {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  // FIX: sebelumnya Cascade -- artinya menghapus Branch akan diam-diam
+  // ikut menghapus baris penugasan karyawan ke cabang itu, tanpa
+  // peringatan apapun. Diubah ke Restrict supaya konsisten dengan
+  // prinsip yang sudah dipakai di User.role (baris 28): sebuah entitas
+  // yang masih "dipegang aktif" oleh pihak lain (di sini: karyawan yang
+  // masih ditempatkan di cabang ini) tidak boleh terhapus otomatis --
+  // admin harus secara sadar memindahkan/melepas karyawan dulu.
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@map("employee_branches")
 }
