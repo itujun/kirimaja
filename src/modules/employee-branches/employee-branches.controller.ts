@@ -17,6 +17,8 @@ import { JwtAuthGuard } from '../auth/guards/logged-in.guard';
 import { BaseResponse } from '../roles/interface/base-response.interface';
 import { EmployeeBranch } from '@prisma/client';
 import { RequirePermission } from '../auth/decorators/permission.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 
 @Controller('employee-branches')
 @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -29,11 +31,13 @@ export class EmployeeBranchesController {
     @RequirePermission('employee.create')
     async create(
         @Body() createEmployeeBranchDto: CreateEmployeeBranchDto,
+        @CurrentUser() currentUser: AuthenticatedUser,
     ): Promise<BaseResponse<EmployeeBranch>> {
         return {
             message: 'Employee branch created successfully',
             data: await this.employeeBranchesService.create(
                 createEmployeeBranchDto,
+                currentUser,
             ),
         };
     }
@@ -63,12 +67,14 @@ export class EmployeeBranchesController {
     async update(
         @Param('id', ParseIntPipe) id: number,
         @Body() updateEmployeeBranchDto: UpdateEmployeeBranchDto,
+        @CurrentUser() currentUser: AuthenticatedUser,
     ): Promise<BaseResponse<EmployeeBranch>> {
         return {
             message: `Employee branch with ID ${id} updated successfully`,
             data: await this.employeeBranchesService.update(
                 id,
                 updateEmployeeBranchDto,
+                currentUser,
             ),
         };
     }
@@ -77,8 +83,9 @@ export class EmployeeBranchesController {
     @RequirePermission('employee.delete')
     async remove(
         @Param('id', ParseIntPipe) id: number,
+        @CurrentUser() currentUser: AuthenticatedUser,
     ): Promise<BaseResponse<null>> {
-        await this.employeeBranchesService.remove(id);
+        await this.employeeBranchesService.remove(id, currentUser);
         return {
             message: `Employee branch with ID ${id} deleted successfully`,
             data: null,

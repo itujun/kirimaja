@@ -12,7 +12,6 @@ export class UpdateEmployeeBranchDto {
         public readonly phone_number?: string,
         public readonly branch_id?: number,
         public readonly type?: string,
-        public readonly role_id?: number,
         public readonly password?: string,
         public readonly avatar?: string,
     ) {}

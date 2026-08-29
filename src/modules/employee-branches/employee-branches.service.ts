@@ -1,5 +1,6 @@
 import {
     BadRequestException,
+    ForbiddenException,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +9,16 @@ import { UpdateEmployeeBranchDto } from './dto/update-employee-branch.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { EmployeeBranch } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
+
+// Pemetaan `type` (yang boleh dipilih user di form) -> `key` role yang
+// SEBENARNYA menentukan hak akses. Sengaja dipetakan lewat `key` (string
+// stabil), BUKAN ID numerik -- supaya tidak rapuh terhadap urutan seed
+// seperti UserRole hardcode yang sebelumnya dipakai di frontend.
+const ROLE_KEY_BY_EMPLOYEE_TYPE: Record<string, string> = {
+    courier: 'courier',
+    admin: 'admin-branch',
+};
 
 @Injectable()
 export class EmployeeBranchesService {
@@ -37,22 +48,91 @@ export class EmployeeBranchesService {
         }
     }
 
-    private async validateRoleExists(role_id: number): Promise<void> {
+    // FIX (Critical -- privilege escalation): role_id TIDAK LAGI diterima
+    // dari client. Di sini kita cari Role yang sesuai berdasarkan `type`,
+    // lewat `key` yang stabil -- bukan ID yang dikirim user.
+    private async resolveRoleIdForType(type: string): Promise<number> {
+        const roleKey = ROLE_KEY_BY_EMPLOYEE_TYPE[type];
         const role = await this.prismaService.role.findUnique({
-            where: { id: role_id },
+            where: { key: roleKey },
         });
+
         if (!role) {
-            throw new NotFoundException(`Role with ID ${role_id} not found`);
+            // Ini menandakan masalah konfigurasi/seed, bukan input user
+            // yang salah -- makanya bukan BadRequestException.
+            throw new NotFoundException(
+                `Role dengan key "${roleKey}" tidak ditemukan. Pastikan seed roles sudah dijalankan.`,
+            );
         }
+
+        return role.id;
+    }
+
+    // FIX (Critical -- horizontal authorization bypass): sebelumnya tidak
+    // ada pengecekan branch sama sekali di service ini -- pembatasan
+    // "admin-branch cuma boleh kelola karyawan cabangnya sendiri" HANYA
+    // ada di frontend (isEmployeeFromSameBranch), yang bisa dilewati
+    // dengan memanggil API langsung. Method ini mencari branch_id milik
+    // requester sendiri (lewat EmployeeBranch-nya), dipakai untuk
+    // menegakkan pembatasan itu di create/update/remove.
+    private async getRequesterOwnBranchId(
+        currentUser: AuthenticatedUser,
+    ): Promise<number> {
+        const ownAssignment = await this.prismaService.employeeBranch.findFirst(
+            {
+                where: { userId: currentUser.id },
+                select: { branchId: true },
+            },
+        );
+
+        if (!ownAssignment) {
+            throw new ForbiddenException(
+                'Akun Anda tidak terhubung ke cabang manapun.',
+            );
+        }
+
+        return ownAssignment.branchId;
+    }
+
+    private isAdminBranch(currentUser: AuthenticatedUser): boolean {
+        return currentUser.role.key === 'admin-branch';
     }
 
     async create(
         createEmployeeBranchDto: CreateEmployeeBranchDto,
+        currentUser: AuthenticatedUser,
     ): Promise<EmployeeBranch> {
+        const branchId = createEmployeeBranchDto.branch_id;
+
+        if (this.isAdminBranch(currentUser)) {
+            const ownBranchId = await this.getRequesterOwnBranchId(currentUser);
+
+            // admin-branch cuma boleh membuat karyawan bertipe "courier",
+            // dan cuma untuk cabangnya sendiri -- sesuai batasan yang
+            // sudah tersirat di UI (dropdown "Tipe" cuma tampilkan
+            // "Kurir" untuk admin-branch). Ditolak eksplisit di sini,
+            // bukan di-override diam-diam, supaya kalau ada yang mencoba
+            // bypass lewat API langsung, dia dapat pesan error yang
+            // jelas -- bukan perilaku yang membingungkan.
+            if (createEmployeeBranchDto.type !== 'courier') {
+                throw new ForbiddenException(
+                    'Admin cabang hanya dapat menambahkan karyawan bertipe kurir.',
+                );
+            }
+            if (branchId !== ownBranchId) {
+                throw new ForbiddenException(
+                    'Admin cabang hanya dapat menambahkan karyawan untuk cabangnya sendiri.',
+                );
+            }
+        }
+
+        const roleId = await this.resolveRoleIdForType(
+            createEmployeeBranchDto.type,
+        );
+
         await Promise.all([
             this.validateUniqueEmail(createEmployeeBranchDto.email),
-            this.validateBranchExists(createEmployeeBranchDto.branch_id),
-            this.validateRoleExists(createEmployeeBranchDto.role_id),
+            this.validateBranchExists(branchId),
         ]);
 
         return this.prismaService.$transaction(async (tx) => {
@@ -66,14 +146,14 @@ export class EmployeeBranchesService {
                     ),
                     avatar: createEmployeeBranchDto.avatar,
                     phoneNumber: createEmployeeBranchDto.phone_number,
-                    roleId: createEmployeeBranchDto.role_id,
+                    roleId,
                 },
             });
 
             const employeeBranch = await tx.employeeBranch.create({
                 data: {
                     userId: user.id,
-                    branchId: createEmployeeBranchDto.branch_id,
+                    branchId,
                     type: createEmployeeBranchDto.type,
                 },
             });
@@ -83,7 +163,7 @@ export class EmployeeBranchesService {
     }
 
     async findAll(): Promise<EmployeeBranch[]> {
-        return this.prismaService.employeeBranch.findMany({
+        return await this.prismaService.employeeBranch.findMany({
             include: {
                 user: {
                     select: {
@@ -140,8 +220,39 @@ export class EmployeeBranchesService {
     async update(
         id: number,
         updateEmployeeBranchDto: UpdateEmployeeBranchDto,
+        currentUser: AuthenticatedUser,
     ): Promise<EmployeeBranch> {
         const existingEmployeeBranch = await this.findOne(id);
+
+        if (this.isAdminBranch(currentUser)) {
+            const ownBranchId = await this.getRequesterOwnBranchId(currentUser);
+
+            // FIX Critical: sebelumnya tidak ada pengecekan ini sama
+            // sekali -- admin-branch bisa update karyawan CABANG LAIN
+            // lewat API langsung walau tombol Edit-nya disembunyikan di
+            // UI. Ini baris yang menutup celahnya.
+            if (existingEmployeeBranch.branchId !== ownBranchId) {
+                throw new ForbiddenException(
+                    'Anda hanya dapat mengelola karyawan di cabang Anda sendiri.',
+                );
+            }
+            if (
+                updateEmployeeBranchDto.type &&
+                updateEmployeeBranchDto.type !== 'courier'
+            ) {
+                throw new ForbiddenException(
+                    'Admin cabang hanya dapat mengelola karyawan bertipe kurir.',
+                );
+            }
+            if (
+                updateEmployeeBranchDto.branch_id &&
+                updateEmployeeBranchDto.branch_id !== ownBranchId
+            ) {
+                throw new ForbiddenException(
+                    'Admin cabang tidak dapat memindahkan karyawan ke cabang lain.',
+                );
+            }
+        }
 
         const validationPromises: Promise<void>[] = [];
 
@@ -160,12 +271,6 @@ export class EmployeeBranchesService {
             );
         }
 
-        if (updateEmployeeBranchDto.role_id) {
-            validationPromises.push(
-                this.validateRoleExists(updateEmployeeBranchDto.role_id),
-            );
-        }
-
         // Semua validasi & operasi non-DB (hashing) selesai SEBELUM
         // transaction dibuka, supaya transaction tetap singkat.
         await Promise.all(validationPromises);
@@ -174,8 +279,15 @@ export class EmployeeBranchesService {
             ? await bcrypt.hash(updateEmployeeBranchDto.password, 10)
             : undefined;
 
+        // Role cuma ikut diupdate kalau `type` benar-benar dikirim --
+        // dan dihitung ulang dari `type`, bukan dari role_id manapun
+        // (field itu sudah tidak ada lagi di DTO).
+        const roleId = updateEmployeeBranchDto.type
+            ? await this.resolveRoleIdForType(updateEmployeeBranchDto.type)
+            : undefined;
+
         return this.prismaService.$transaction(async (tx) => {
-            const updatedUser = await tx.user.update({
+            await tx.user.update({
                 where: { id: existingEmployeeBranch.userId },
                 data: {
                     name: updateEmployeeBranchDto.name,
@@ -183,7 +295,7 @@ export class EmployeeBranchesService {
                     phoneNumber: updateEmployeeBranchDto.phone_number,
                     avatar: updateEmployeeBranchDto.avatar,
                     ...(hashedPassword && { password: hashedPassword }),
-                    roleId: updateEmployeeBranchDto.role_id,
+                    ...(roleId && { roleId }),
                 },
             });
 
@@ -201,10 +313,23 @@ export class EmployeeBranchesService {
         });
     }
 
-    async remove(id: number): Promise<void> {
+    async remove(id: number, currentUser: AuthenticatedUser): Promise<void> {
         // Pastikan record ada dulu, biar tetap melempar 404 yang jelas
         // kalau id tidak ditemukan (bukan silent no-op).
-        await this.findOne(id);
+        const existingEmployeeBranch = await this.findOne(id);
+
+        if (this.isAdminBranch(currentUser)) {
+            const ownBranchId = await this.getRequesterOwnBranchId(currentUser);
+
+            // FIX Critical: sama seperti update() -- tanpa ini,
+            // admin-branch bisa menghapus karyawan cabang lain lewat
+            // API langsung.
+            if (existingEmployeeBranch.branchId !== ownBranchId) {
+                throw new ForbiddenException(
+                    'Anda hanya dapat mengelola karyawan di cabang Anda sendiri.',
+                );
+            }
+        }
 
         // Yang dihapus hanya relasi penugasan (EmployeeBranch), BUKAN
         // akun User-nya. User adalah entitas identitas independen yang
