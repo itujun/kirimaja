@@ -153,10 +153,29 @@ export class ProfileService {
             10,
         );
 
-        await this.prismaService.user.update({
-            where: { id },
-            data: { password: hashedPassword },
-        });
+        // FIX (Medium -- session hygiene): sebelumnya hanya password yang
+        // diupdate, seluruh refresh token yang sudah terbit (di device/
+        // browser lain) TETAP VALID setelah password diganti. Kalau
+        // alasan user mengganti password adalah "curiga ada yang lain
+        // pegang akun saya", itu tidak benar-benar menutup aksesnya --
+        // refresh token yang sudah dicuri masih bisa dipakai terus
+        // sampai masa berlakunya habis (JWT_REFRESH_EXPIRES_IN, bisa
+        // berhari-hari). Sekarang SEMUA refresh token milik user ini
+        // ikut di-revoke di transaksi yang sama, termasuk punya sesi
+        // yang sedang dipakai request ini sendiri -- konsekuensinya user
+        // akan diminta login ulang, itu memang perilaku yang diinginkan
+        // (mirip pola "logout dari semua perangkat" setelah ganti
+        // password di aplikasi-aplikasi besar).
+        await this.prismaService.$transaction([
+            this.prismaService.user.update({
+                where: { id },
+                data: { password: hashedPassword },
+            }),
+            this.prismaService.refreshToken.updateMany({
+                where: { userId: id, revokedAt: null },
+                data: { revokedAt: new Date() },
+            }),
+        ]);
     }
 
     // Validasi magic bytes lalu tulis buffer ke disk. Nama file dibuat
