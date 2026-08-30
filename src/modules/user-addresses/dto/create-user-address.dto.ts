@@ -6,19 +6,22 @@ export const createUserAddressesSchema = z.object({
             required_error: 'Address is required',
             invalid_type_error: 'Address must be a string',
         })
-        .min(1, 'Address must be at least 1 characters'),
+        .min(1, 'Address must be at least 1 characters')
+        .max(500, 'Address must not exceed 500 characters'),
     tag: z
         .string({
             required_error: 'Tag is required',
             invalid_type_error: 'Tag must be a string',
         })
-        .min(1, 'Tag must be at least 1 characters'),
+        .min(1, 'Tag must be at least 1 characters')
+        .max(100, 'Tag must not exceed 100 characters'),
     label: z
         .string({
             required_error: 'Label is required',
             invalid_type_error: 'Label must be a string',
         })
-        .min(1, 'Label must be at least 1 characters'),
+        .min(1, 'Label must be at least 1 characters')
+        .max(50, 'Label must not exceed 50 characters'),
 });
 
 export class CreateUserAddressesDto {
