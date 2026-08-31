@@ -24,9 +24,27 @@ export type RoleWithPermissions = Prisma.RoleGetPayload<{
 // Dipakai di ShipmentsService.findAll() (dan findOne(), karena bentuk
 // include-nya identik -- daripada duplikat literal include yang sama
 // persis di dua tempat).
+//
+// PENTING: shipmentDetail sengaja include NESTED user & address (bukan
+// `shipmentDetail: true` saja). Sebelumnya include shallow ini bikin
+// findOne()/findAll() mengembalikan shipmentDetail.user dan
+// shipmentDetail.address sebagai `undefined` di response -- padahal
+// frontend (halaman pay & detail) mengasumsikan keduanya selalu ada,
+// termasuk di beberapa tempat TANPA optional chaining sama sekali
+// (`shipment_detail.user.name`). Akibatnya halaman pay CRASH setiap
+// kali user selesai membuat shipment (alur paling sering dipakai di
+// seluruh aplikasi). Pola ini sudah lebih dulu benar di
+// generateShipmentPdf() -- sekarang disamakan di sini supaya SATU
+// bentuk include ini konsisten dipakai di semua tempat yang butuh
+// data shipment lengkap.
 export const SHIPMENT_WITH_RELATIONS_INCLUDE =
     Prisma.validator<Prisma.ShipmentInclude>()({
-        shipmentDetail: true,
+        shipmentDetail: {
+            include: {
+                user: true,
+                address: true,
+            },
+        },
         payment: true,
         shipmentHistories: true,
     });
